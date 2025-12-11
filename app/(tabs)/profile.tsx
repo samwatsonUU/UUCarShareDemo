@@ -46,7 +46,8 @@ const styles = StyleSheet.create({
 
   profileInfo: {
 
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 20,
     backgroundColor: "white",
     borderRadius: 10,
     width: 340
@@ -64,7 +65,7 @@ const styles = StyleSheet.create({
   label: {
 
     fontWeight: "bold",
-    flexBasis: 140,
+    flexBasis: 150,
     paddingRight: 10,
 
   },
@@ -81,14 +82,12 @@ const styles = StyleSheet.create({
 
   button: {
 
-    marginTop: 40,
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
     width: 100,
     borderRadius: 5,
     padding: 10
-
 
   },
 
