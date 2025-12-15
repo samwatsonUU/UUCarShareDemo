@@ -3,12 +3,16 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SQLiteProvider } from "expo-sqlite";
-
+import { AuthProvider } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+/*
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+*/
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -27,10 +31,10 @@ export default function RootLayout() {
             lastName TEXT NOT NULL,
             gender TEXT NOT NULL,
             role TEXT NOT NULL,
-            Bio TEXT,
-            CanDrive BOOL NOT NULL,
-            PrefersSameGender BOOL NOT NULL,
-            SmokingAllowed BOOL NOT NULL
+            bio TEXT,
+            canDrive BOOL NOT NULL,
+            prefersSameGender BOOL NOT NULL,
+            smokingAllowed BOOL NOT NULL
           );
 
             CREATE TABLE IF NOT EXISTS journeys (
@@ -53,13 +57,18 @@ export default function RootLayout() {
         options={{useNewConnection: false}}
       >
 
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          {/* <Stack initialRouteName="index"> */}
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AuthProvider>  
 
     </SQLiteProvider>
 
