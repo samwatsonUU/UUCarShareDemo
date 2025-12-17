@@ -1,9 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import { useAuth } from "@/context/AuthContext";
+import { router } from "expo-router";
 
 export default function Profile() {
+  
+  const { user } = useAuth();
+
+  const logoutUser = () => {
+
+      router.replace('/(auth)/login')
+
+  }
+  
+  
   return (
-<View style={styles.container}>
+
+    <View style={styles.container}>
 
       <Text style={styles.title}>My Profile</Text>
 
@@ -20,6 +33,16 @@ export default function Profile() {
         {({ pressed }) => (
           <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Profile</Text>
         )}
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.logoutButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+        onPress={logoutUser}  
+      >
+        {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Logout</Text>
+        )}
+        
       </Pressable>
 
     </View>
@@ -47,7 +70,6 @@ const styles = StyleSheet.create({
   profileInfo: {
 
     marginTop: 20,
-    marginBottom: 20,
     backgroundColor: "white",
     borderRadius: 10,
     width: 340
@@ -87,13 +109,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(11, 161, 226, 0.2)",
     width: 100,
     borderRadius: 5,
-    padding: 10
+    padding: 10,
+    marginTop: 10,
 
   },
 
   buttonText: {
 
     color: "rgba(11, 161, 226, 1)",
+
+  },
+
+  logoutButton: {
+
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(124, 124, 124, 0.2)",
+    width: 100,
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
 
   }
    

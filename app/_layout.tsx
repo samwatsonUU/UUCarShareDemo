@@ -71,6 +71,7 @@ export default function RootLayout() {
       </AuthProvider>  
 
     </SQLiteProvider>
+    
 
   );
 }

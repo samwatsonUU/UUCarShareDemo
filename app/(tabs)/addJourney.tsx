@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable, ScrollView } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AddJourney() {
 
@@ -16,6 +17,8 @@ export default function AddJourney() {
 
     const db = useSQLiteContext();
 
+    const { user } = useAuth();
+
     const handleSubmit = async () => {
 
         try {
@@ -24,17 +27,18 @@ export default function AddJourney() {
             if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
 
                 throw new Error('All fields are required');
-
                 
             }
 
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO journeys (userID, origin, destination, departingAt, mustArriveAt, date, status) VALUES (0, ?, ?, ?, ?, ?, "test")',
-                [form.origin, form.destination, form.departingAt, form.mustArriveAt, form.date]
+                'INSERT INTO journeys (userID, origin, destination, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, "test")',
+                [user!.userID, form.origin, form.destination, form.departingAt, form.mustArriveAt, form.date]
 
             );
+
+            console.log('New Journey:', form.origin + " to " + form.destination);
 
             Alert.alert('Success', 'Journey added successfully!');
             setForm({

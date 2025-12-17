@@ -1,37 +1,38 @@
 import React, { createContext, useContext, useState } from "react";
 
+type AuthUser = {
+  userID: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+};
+
 type AuthContextType = {
+  user: AuthUser | null;
   isLoggedIn: boolean;
-  login: (userId: number) => void;
+  login: (user: AuthUser) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-
-
-
-  // FOR TESTING!!!
-  const [userId, setUserId] = useState<number | null>(null);
-  //const [userId, setUserId] = useState<number | null>(1);
-
-
-
-
-  const login = (id: number) => {
-    setUserId(id);
+  const login = (user: AuthUser) => {
+    setUser(user);
   };
 
   const logout = () => {
-    setUserId(null);
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        isLoggedIn: userId !== null,
+        user,
+        isLoggedIn: user !== null,
         login,
         logout,
       }}

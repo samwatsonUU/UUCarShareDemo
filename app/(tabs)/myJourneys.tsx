@@ -6,6 +6,7 @@ import { Button } from '@react-navigation/elements';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { RefreshControl } from "react-native";
+import { useAuth } from "@/context/AuthContext";
 
 type Journey = {
   journeyID: number;
@@ -24,6 +25,7 @@ export default function MyJourneys() {
   const [Journeys, setJourneys] = useState<Journey[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const db = useSQLiteContext();
+  const { user } = useAuth();
 
   const loadUsers = async () => {
 
@@ -32,7 +34,7 @@ export default function MyJourneys() {
           setIsLoading(true);
 
           const results = await db.getAllAsync<Journey>(
-            "SELECT * FROM journeys ORDER BY journeyID DESC"
+            "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]
           );
 
           setJourneys(results)
@@ -65,8 +67,8 @@ export default function MyJourneys() {
 
     <View style={styles.container}>
 
-      <AntDesign name="car" size={96} color="rgba(11, 161, 226, 1)"/>
       <Text style={styles.title}>My Journeys</Text>
+      <Text> Welcome, {user?.firstName}!</Text>
 
       <FlatList
             style={styles.list}

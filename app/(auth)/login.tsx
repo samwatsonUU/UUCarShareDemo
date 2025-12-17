@@ -3,8 +3,21 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
+
+
+type UserRow = {
+  userID: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+};
+
 
 export default function login() { 
+
+  const { login } = useAuth();
 
   const[form, setForm] = useState({
 
@@ -27,7 +40,7 @@ export default function login() {
       } 
 
       // retrieve from the DB
-      const user = await db.getFirstAsync('SELECT * FROM users WHERE email = ? AND password = ?', [form.email, form.password]);
+      const user = await db.getFirstAsync<UserRow>(`SELECT userID, email, firstName, lastName, role FROM users WHERE email = ? AND password = ?`, [form.email, form.password]);
 
       if(!user) {
 
@@ -37,6 +50,15 @@ export default function login() {
       }
 
       console.log('LOGGED IN USER:', user);
+
+      login({
+        userID: user.userID,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      });
+
       router.replace('/(tabs)/myJourneys');
 
       } catch (error: unknown) {
