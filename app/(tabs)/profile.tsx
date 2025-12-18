@@ -1,11 +1,68 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
+import { useSQLiteContext } from "expo-sqlite";
+import { RefreshControl } from "react-native";
+import { useEffect, useState } from "react";
+
+
+type User = {
+
+  userID: number,
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  gender: string,
+  role: string,
+  bio: string,
+  canDrive: number,
+  prefersSameGender: number,
+  smokingAllowed: number
+
+}
+
+
+
 
 export default function Profile() {
-  
+
+  const [User, setUser] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const db = useSQLiteContext();
   const { user } = useAuth();
+  
+  useEffect(() => {
+    if (user?.userID) {
+      loadUsers();
+    }
+  }, [user]);
+
+
+  const loadUsers = async () => {
+  
+      try {
+  
+          setIsLoading(true);
+  
+          const results = await db.getAllAsync<User>(
+            "SELECT * FROM Users WHERE userID = ?", [user!.userID]
+          );
+  
+          setUser(results)
+  
+      } catch (error) {
+  
+          console.error("Database error", error);
+  
+      } finally {
+  
+          setIsLoading(false);
+  
+      }
+  
+  };
 
   const logoutUser = () => {
 
@@ -20,16 +77,29 @@ export default function Profile() {
 
       <Text style={styles.title}>My Profile</Text>
 
-      <View style={styles.profileInfo}>
+      <FlatList
+      style={styles.list}
+      data={User}
+      refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadUsers} tintColor="#007AFF" />}
+      keyExtractor={(item) => item.userID.toString()}
+      renderItem={({ item }) => (
+        <View style={styles.journeyContainer}>
+          <Text>Email: {item.email}</Text>
+          <Text>First Name: {item.firstName}</Text>
+          <Text>Last Name: {item.lastName}</Text>
+          <Text>Gender: {item.gender}</Text>
+          <Text>Role: {item.role}</Text>
+          <Text>Bio: {item.bio}</Text>
+          <Text>Can Drive: {item.canDrive}</Text>
+          <Text>Prefers Same Gender: {item.prefersSameGender}</Text>
+          <Text>Smoking Allowed: {item.smokingAllowed}</Text>
+        </View>
+        )}
+      ListEmptyComponent={<Text>You haven't added any journeys - go to the "Add A Journey" screen to do so.</Text>}
+      />
 
-        <View style={styles.infoGroup}><Text style={styles.label}>First Name:</Text><Text>Sam</Text></View>
-        <View style={styles.infoGroup}><Text style={styles.label}>Last Name:</Text><Text>Watson</Text></View>
-        <View style={styles.infoGroup}><Text style={styles.label}>Email Address:</Text><Text>Watson-S28@ulster.ac.uk</Text></View>
-        <View style={styles.infoGroup}><Text style={styles.label}>Vehicle Registration:</Text><Text>DN13 HRE</Text></View>
-
-      </View>
-
-      <Pressable style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}>
+      <Pressable style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+        onPress={ () => router.replace('/editProfile')}>
         {({ pressed }) => (
           <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Profile</Text>
         )}
@@ -130,6 +200,22 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
 
-  }
+  }, 
+
+    list: {
+
+    width: 320,
+    marginTop: 20,
+
+  },
+
+  journeyContainer: {
+
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: "rgb(255, 255, 255)",
+    borderRadius: 15,
+
+  },
    
 })

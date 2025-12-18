@@ -68,7 +68,6 @@ export default function MyJourneys() {
     <View style={styles.container}>
 
       <Text style={styles.title}>My Journeys</Text>
-      <Text> Welcome, {user?.firstName}!</Text>
 
       <FlatList
             style={styles.list}

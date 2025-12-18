@@ -32,9 +32,9 @@ export default function RootLayout() {
             gender TEXT NOT NULL,
             role TEXT NOT NULL,
             bio TEXT,
-            canDrive BOOL NOT NULL,
-            prefersSameGender BOOL NOT NULL,
-            smokingAllowed BOOL NOT NULL
+            canDrive INTEGER NOT NULL,
+            prefersSameGender INTEGER NOT NULL,
+            smokingAllowed INTEGER NOT NULL
           );
 
             CREATE TABLE IF NOT EXISTS journeys (
@@ -62,6 +62,7 @@ export default function RootLayout() {
           {/* <Stack initialRouteName="index"> */}
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="editProfile" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

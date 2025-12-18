@@ -15,6 +15,28 @@ export default function AddJourney() {
 
     })
 
+    const validTime = (value: string): boolean => {
+
+      return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+    }
+
+    const validDate = (value: string): boolean => {
+
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
+
+      const [day, month, year] = value.split('/').map(Number);
+      const date = new Date(year, month - 1, day);
+
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      );
+
+    };
+
+
     const db = useSQLiteContext();
 
     const { user } = useAuth();
@@ -26,8 +48,16 @@ export default function AddJourney() {
             // ensure no inputs are empty
             if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
 
-                throw new Error('All fields are required');
+              throw new Error('All fields are required');
                 
+            } else if(!validTime(form.departingAt) || !validTime(form.mustArriveAt)) {
+
+              throw new Error('Check time format');
+
+            } else if(!validDate(form.date)) {
+
+              throw new Error('Check date format');
+
             }
 
             // insert data into the database

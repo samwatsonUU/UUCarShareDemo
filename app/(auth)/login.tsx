@@ -9,8 +9,10 @@ import { useAuth } from "@/context/AuthContext";
 type UserRow = {
   userID: number;
   email: string;
+  password: string;
   firstName: string;
   lastName: string;
+  gender: string;
   role: string;
 };
 
@@ -40,7 +42,7 @@ export default function login() {
       } 
 
       // retrieve from the DB
-      const user = await db.getFirstAsync<UserRow>(`SELECT userID, email, firstName, lastName, role FROM users WHERE email = ? AND password = ?`, [form.email, form.password]);
+      const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE email = ? AND password = ?`, [form.email, form.password]);
 
       if(!user) {
 
@@ -54,8 +56,10 @@ export default function login() {
       login({
         userID: user.userID,
         email: user.email,
+        password: user.password,
         firstName: user.firstName,
         lastName: user.lastName,
+        gender: user.gender,
         role: user.role,
       });
 
@@ -122,6 +126,14 @@ export default function login() {
       >  
       {({ pressed }) => (
       <Text style={[styles.buttonText, pressed && { color: "white" }]}>Register</Text>
+      )}
+      </Pressable>
+
+      <Pressable
+      onPress={ () => router.replace("/(auth)/forgotPassword")}
+      >  
+      {({ pressed }) => (
+      <Text style={[styles.buttonText, pressed && { color: "Black" }]}>Forgot Password</Text>
       )}
       </Pressable>
 
@@ -202,6 +214,18 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: 5,
     padding: 10,
+    marginBottom: 20,
+
+  },
+
+  forgotPasswordButton: {
+
+    alignItems: "center",
+    alignSelf: "center",
+    width: 100,
+    borderRadius: 5,
+    padding: 10,
 
   }
+
 })

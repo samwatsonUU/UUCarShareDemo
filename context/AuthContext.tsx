@@ -5,6 +5,8 @@ type AuthUser = {
   email: string;
   firstName: string;
   lastName: string;
+  password: string;
+  gender: string;
   role: string;
 };
 

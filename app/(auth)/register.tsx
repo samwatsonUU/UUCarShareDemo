@@ -20,6 +20,11 @@ export default function register() {
 
     const db = useSQLiteContext();
 
+    const validEmail = (value: string): boolean => {
+
+      return /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
+
+    }
 
     const handleSubmit = async () => {
 
@@ -31,6 +36,10 @@ export default function register() {
 
               throw new Error('All fields are required');
                 
+            } else if (!validEmail(form.email)) {
+
+              throw new Error("Email must end with @ulster.ac.uk");
+
             } else if (form.password != form.confirmPassword) {
 
               throw new Error('Passwords do not match');
