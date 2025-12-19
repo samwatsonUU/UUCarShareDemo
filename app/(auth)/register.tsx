@@ -26,6 +26,24 @@ export default function register() {
 
     }
 
+    const validPassword = (value: string): boolean => {
+
+      return /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+
+    }
+
+    const emailInUse = async (email: string): Promise<boolean> => {
+
+      const rows = await db.getAllAsync(
+
+      'SELECT 1 FROM users WHERE email = ? LIMIT 1', form.email
+      
+      );
+
+      return rows.length > 0;
+
+    };
+
     const handleSubmit = async () => {
 
 
@@ -36,9 +54,17 @@ export default function register() {
 
               throw new Error('All fields are required');
                 
+            } else if (await emailInUse(form.email)) {         
+
+              throw new Error("Email provided is already in use - use \"Reset Password\" instead.");
+
             } else if (!validEmail(form.email)) {
 
               throw new Error("Email must end with @ulster.ac.uk");
+
+            } else if (!validPassword(form.password)) {
+
+              throw new Error("Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character");
 
             } else if (form.password != form.confirmPassword) {
 

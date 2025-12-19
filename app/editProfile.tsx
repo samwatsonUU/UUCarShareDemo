@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { useAuth } from "@/context/AuthContext";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useEffect, useState } from "react";
@@ -44,6 +44,55 @@ export default function editProfile() {
     const validEmail = (value: string): boolean => {
 
       return /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
+
+    }
+
+    const validPassword = (value: string): boolean => {
+
+      return /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+
+    }
+
+    const saveChanges = async () => {
+
+      try {
+
+        // ensure no inputs are empty
+        if(!form.email || !form.password || !form.firstName || !form.lastName || !form.gender || !form.role) {
+
+          throw new Error('No fields can be empty.');
+
+        } else if (!validEmail(form.email)) {
+
+          throw new Error("Email must end with @ulster.ac.uk");
+
+        } else if (!validPassword(form.password)) {
+
+          throw new Error("Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character");
+
+        }
+
+        await db.runAsync (
+
+          'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, gender = ?, role = ? WHERE userID = ?', [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, user!.userID]
+
+        )
+
+        const rows = await db.getAllAsync('SELECT * FROM users WHERE userID = ?', user!.userID);
+        console.log('UPDATED USER:', JSON.stringify(rows, null, 2));
+
+        Alert.alert("Alert", "Changes Saved!")
+        router.replace('/(tabs)/profile')
+      
+      } catch (error: unknown) {
+
+        console.error(error);
+
+        const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
+
+        Alert.alert('Error', message);
+
+      }
 
     }
 
@@ -101,7 +150,7 @@ export default function editProfile() {
             <Pressable
             style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
     
-            // onPress={handleSubmit}
+            onPress={saveChanges}
     
             >  
             {({ pressed }) => (

@@ -24,14 +24,12 @@ type User = {
 }
 
 
-
-
 export default function Profile() {
 
   const [User, setUser] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const db = useSQLiteContext();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   
   useEffect(() => {
     if (user?.userID) {
@@ -66,7 +64,8 @@ export default function Profile() {
 
   const logoutUser = () => {
 
-      router.replace('/(auth)/login')
+    logout();
+    router.replace('/(auth)/login')
 
   }
   
