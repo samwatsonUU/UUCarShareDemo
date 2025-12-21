@@ -14,12 +14,17 @@ type UserRow = {
   lastName: string;
   gender: string;
   role: string;
+  bio: string;
+  canDrive: number;
+  prefersSameGender: number;
+  smokingAllowed: number;
+  
 };
 
 
 export default function login() { 
 
-  const { login } = useAuth();
+  const { user, login } = useAuth();
 
   const[form, setForm] = useState({
 
@@ -61,6 +66,10 @@ export default function login() {
         lastName: user.lastName,
         gender: user.gender,
         role: user.role,
+        bio: user.bio,
+        canDrive: user.canDrive,
+        prefersSameGender: user.prefersSameGender,
+        smokingAllowed: user.smokingAllowed,
       });
 
       router.replace('/(tabs)/myJourneys');

@@ -86,6 +86,7 @@ export default function Profile() {
           <Text>Email: {item.email}</Text>
           <Text>First Name: {item.firstName}</Text>
           <Text>Last Name: {item.lastName}</Text>
+          <Text>Password: {item.password}</Text>
           <Text>Gender: {item.gender}</Text>
           <Text>Role: {item.role}</Text>
           <Text>Bio: {item.bio}</Text>

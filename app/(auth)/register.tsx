@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Pressable, Alert, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, Alert, TextInput, Switch } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
@@ -15,6 +15,10 @@ export default function register() {
         lastName: '',
         gender: '',
         role: '',
+        bio: '',
+        canDrive: false,
+        prefersSameGender: false,
+        smokingAllowed: false
 
     })
 
@@ -50,7 +54,7 @@ export default function register() {
       try {
 
             // ensure no inputs are empty
-            if(!form.email || !form.password || !form.confirmPassword || !form.firstName || !form.lastName || !form.gender || !form.role) {
+            if(!form.email || !form.password || !form.confirmPassword || !form.firstName || !form.lastName || !form.gender || !form.role || !form.bio) {
 
               throw new Error('All fields are required');
                 
@@ -75,8 +79,8 @@ export default function register() {
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO users (email, password, firstName, lastName, gender, role, bio, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, "test", 0, 0, 0)',
-                [form.email, form.password, form.firstName, form.lastName, form.gender, form.role]
+                'INSERT INTO users (email, password, firstName, lastName, gender, role, bio, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.bio, form.canDrive, form.prefersSameGender, form.smokingAllowed]
 
             );
 
@@ -97,6 +101,10 @@ export default function register() {
               lastName: '',
               gender: '',
               role: '',
+              bio: '',
+              canDrive: false,
+              prefersSameGender: false,
+              smokingAllowed: false,
 
             });
         
@@ -114,12 +122,15 @@ export default function register() {
 
     return (
 
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
 
       <AntDesign name="car" size={96} color="rgba(11, 161, 226, 1)"/>
       <Text style={styles.title}>UUCarShare</Text>
       
-      <ScrollView style={styles.form}>
+      <View style={styles.form}>
     
 
         <TextInput
@@ -178,7 +189,44 @@ export default function register() {
         onChangeText={(text) => setForm({ ...form, role: text })}
         />
 
-      </ScrollView>
+        <TextInput
+        style={styles.input}
+        placeholder="Bio"
+        value={form.bio}
+        onChangeText={(text) => setForm({ ...form, bio: text })}
+        />
+
+        <View style={styles.switchRow}>
+          <Text>Can Drive</Text>
+          <Switch
+            value={form.canDrive}
+            onValueChange={(value) =>
+              setForm({ ...form, canDrive: value })
+            }
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text>Prefers Same Gender</Text>
+          <Switch
+            value={form.prefersSameGender}
+            onValueChange={(value) =>
+              setForm({ ...form, prefersSameGender: value })
+            }
+          />
+        </View>
+
+        <View style={styles.switchRow}>
+          <Text>Smoking Allowed</Text>
+          <Switch
+            value={form.smokingAllowed}
+            onValueChange={(value) =>
+              setForm({ ...form, smokingAllowed: value })
+            }
+          />
+        </View>
+
+      </View>
       
       <Pressable
       style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
@@ -201,7 +249,7 @@ export default function register() {
       </Pressable>
 
 
-    </View>
+    </ScrollView>
 
     );
 }
@@ -210,8 +258,14 @@ const styles = StyleSheet.create({
 
   container: {
 
+    marginTop: 40,
+    marginBottom: 40
+
+  },
+
+  content: {
+
     alignItems: "center",
-    marginTop: 40
 
   },
 
@@ -266,6 +320,15 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
 
+
+  },
+
+  switchRow: {
+
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
 
   },
 

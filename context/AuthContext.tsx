@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from "react";
 
-type AuthUser = {
+export type AuthUser = {
+  
   userID: number;
   email: string;
   firstName: string;
@@ -8,6 +9,11 @@ type AuthUser = {
   password: string;
   gender: string;
   role: string;
+  bio: string;
+  canDrive: number;
+  prefersSameGender: number;
+  smokingAllowed: number;
+
 };
 
 type AuthContextType = {

@@ -4,6 +4,9 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
+import { Switch } from 'react-native';
+import type { AuthUser } from "@/context/AuthContext";
+
 
 export default function editProfile() {
 
@@ -15,12 +18,16 @@ export default function editProfile() {
         lastName: '',
         gender: '',
         role: '',
+        bio: '',
+        canDrive: false,
+        prefersSameGender: false,
+        smokingAllowed: false
 
     })
 
     const db = useSQLiteContext();
 
-    const { user } = useAuth();
+    const { user, login } = useAuth();
 
     useEffect(() => {
 
@@ -34,6 +41,10 @@ export default function editProfile() {
                 lastName: user.lastName ?? '',
                 gender: user.gender ?? '',
                 role: user.role ?? '',
+                bio: user.bio ?? '',
+                canDrive: user.canDrive === 1,
+                prefersSameGender: user.prefersSameGender === 1,
+                smokingAllowed: user.smokingAllowed === 1,
 
             })
 
@@ -74,15 +85,23 @@ export default function editProfile() {
 
         await db.runAsync (
 
-          'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, gender = ?, role = ? WHERE userID = ?', [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, user!.userID]
+          'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, gender = ?, role = ?, bio = ?, canDrive = ?, prefersSameGender = ?, smokingAllowed = ? WHERE userID = ?', [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.bio, form.canDrive ? 1 : 0, form.prefersSameGender ? 1 : 0, form.smokingAllowed ? 1 : 0, user!.userID]
 
         )
 
-        const rows = await db.getAllAsync('SELECT * FROM users WHERE userID = ?', user!.userID);
-        console.log('UPDATED USER:', JSON.stringify(rows, null, 2));
+      const updatedUser = await db.getFirstAsync<AuthUser>(
+        'SELECT * FROM users WHERE userID = ?',
+        [user!.userID]
+      );
+
+      if (updatedUser) {
+        login(updatedUser); // refresh AuthContext
 
         Alert.alert("Alert", "Changes Saved!")
         router.replace('/(tabs)/profile')
+
+      }
+      
       
       } catch (error: unknown) {
 
@@ -140,6 +159,42 @@ export default function editProfile() {
                 value={form.role}
                 onChangeText={(text) => setForm({ ...form, role: text })}
                 />
+
+                <TextInput
+                style={styles.input}
+                value={form.bio}
+                onChangeText={(text) => setForm({ ...form, bio: text })}
+                />
+
+                <View style={styles.switchRow}>
+                  <Text>Can Drive</Text>
+                  <Switch
+                    value={form.canDrive}
+                    onValueChange={(value) =>
+                      setForm({ ...form, canDrive: value })
+                    }
+                  />
+                </View>
+
+                <View style={styles.switchRow}>
+                  <Text>Prefers Same Gender</Text>
+                  <Switch
+                    value={form.prefersSameGender}
+                    onValueChange={(value) =>
+                      setForm({ ...form, prefersSameGender: value })
+                    }
+                  />
+                </View>
+
+                <View style={styles.switchRow}>
+                  <Text>Smoking Allowed</Text>
+                  <Switch
+                    value={form.smokingAllowed}
+                    onValueChange={(value) =>
+                      setForm({ ...form, smokingAllowed: value })
+                    }
+                  />
+                </View>
 
 
 
@@ -239,6 +294,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
 
-  }
+  },
+
+  switchRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginVertical: 10,
+}
+
 
 });
