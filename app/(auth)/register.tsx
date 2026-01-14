@@ -3,6 +3,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
+import { Picker } from '@react-native-picker/picker';  
 
 export default function register() { 
 
@@ -47,6 +48,8 @@ export default function register() {
       return rows.length > 0;
 
     };
+
+    const [showPassword, setShowPassword] = useState(false)
 
     const handleSubmit = async () => {
 
@@ -144,7 +147,7 @@ export default function register() {
         style={styles.input}
         placeholder="Password"
         value={form.password}
-        secureTextEntry
+        secureTextEntry = {!showPassword}
         autoCapitalize="none"
         autoCorrect={false}
         onChangeText={(text) => setForm({ ...form, password: text })}
@@ -154,12 +157,25 @@ export default function register() {
         style={styles.input}
         placeholder="Confirm Password"
         value={form.confirmPassword}
-        secureTextEntry
+        secureTextEntry = {!showPassword}
         autoCapitalize="none"
         autoCorrect={false}
         onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
         />
 
+        <Pressable
+          style={({ pressed }) => [styles.buttonHoldToShow, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+          
+          onPressIn={() => setShowPassword(true)}
+          onPressOut={() => setShowPassword(false)}
+
+        >  
+
+          {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Hold to Show</Text>
+          )}
+
+        </Pressable>
 
         <TextInput
         style={styles.input}
@@ -175,19 +191,36 @@ export default function register() {
         onChangeText={(text) => setForm({ ...form, lastName: text })}
         />
 
-        <TextInput
-        style={styles.input}
-        placeholder="Gender"
-        value={form.gender}
-        onChangeText={(text) => setForm({ ...form, gender: text })}
-        />
+        <View style={styles.pickerContainer}>
 
-        <TextInput
-        style={styles.input}
-        placeholder="Role"
-        value={form.role}
-        onChangeText={(text) => setForm({ ...form, role: text })}
-        />
+          <Picker
+            selectedValue={form.gender}
+            onValueChange={(value) => setForm({ ...form, gender: value})}
+          >
+
+            <Picker.Item label="Select Gender..." value="" />
+            <Picker.Item label="Male" value="Male" />
+            <Picker.Item label="Female" value="Female" />
+            <Picker.Item label="Other" value="Other" />
+
+          </Picker>
+
+        </View>
+
+        <View style={styles.pickerContainer}>
+
+          <Picker
+            selectedValue={form.role}
+            onValueChange={(value) => setForm({ ...form, role: value})}
+          >
+
+            <Picker.Item label="Select Role..." value="" />
+            <Picker.Item label="Student" value="Student" />
+            <Picker.Item label="Staff" value="Staff" />
+
+          </Picker>
+
+        </View>
 
         <TextInput
         style={styles.input}
@@ -341,6 +374,27 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
 
+  },
+
+  pickerContainer: {
+  borderWidth: 1,
+  borderColor: 'gray',
+  margin: 5,
+  borderRadius: 4,
+  overflow: 'hidden',
+  },
+
+  buttonHoldToShow: {
+
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(11, 161, 226, 0.2)",
+    width: 140,
+    borderRadius: 5,
+    marginTop: 10,
+    marginBottom: 10
+
   }
+
 
 })

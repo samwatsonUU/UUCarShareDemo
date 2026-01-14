@@ -214,7 +214,7 @@ export default function editProfile() {
             </Pressable>
     
             <Pressable
-            style={({ pressed }) => [styles.registerButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
+            style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
             onPress={() => router.replace('/(tabs)/profile')}
             >  
             {({ pressed }) => (
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
 
   },
 
-  registerButton: {
+  backButton: {
 
     alignItems: "center",
     alignSelf: "center",

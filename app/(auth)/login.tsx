@@ -26,6 +26,8 @@ export default function login() {
 
   const { user, login } = useAuth();
 
+  const [showPassword, setShowPassword] = useState(false)
+
   const[form, setForm] = useState({
 
         email: '',
@@ -47,7 +49,7 @@ export default function login() {
       } 
 
       // retrieve from the DB
-      const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE email = ? AND password = ?`, [form.email, form.password]);
+      const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND password = ?`, [form.email, form.password]);
 
       if(!user) {
 
@@ -112,9 +114,23 @@ export default function login() {
         value={form.password}
         autoCorrect={false}
         autoCapitalize='none'
-        secureTextEntry
+        secureTextEntry = {!showPassword}
         onChangeText={(text) => setForm({ ...form, password: text })}
         />
+
+        <Pressable
+          style={({ pressed }) => [styles.buttonHoldToShow, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+          
+          onPressIn={() => setShowPassword(true)}
+          onPressOut={() => setShowPassword(false)}
+
+        >  
+
+          {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Hold to Show</Text>
+          )}
+
+        </Pressable>
 
       </ScrollView>
       
@@ -234,6 +250,18 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: 5,
     padding: 10,
+
+  },
+
+  buttonHoldToShow: {
+
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(11, 161, 226, 0.2)",
+    width: 140,
+    borderRadius: 5,
+    marginTop: 10,
+    marginBottom: 10
 
   }
 

@@ -7,6 +7,10 @@ import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { RefreshControl } from "react-native";
 import { useAuth } from "@/context/AuthContext";
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+import { router } from "expo-router";
+
 
 type Journey = {
   journeyID: number;
@@ -57,6 +61,19 @@ export default function MyJourneys() {
 
   }, []);
 
+
+
+  useFocusEffect(
+
+    useCallback(() => {
+
+      loadUsers();
+
+    }, [])
+
+  )
+
+
   if (isLoading) {
 
       return <ActivityIndicator size="large" color="#0000ff" />
@@ -72,6 +89,7 @@ export default function MyJourneys() {
       <FlatList
             style={styles.list}
             data={Journeys}
+            showsVerticalScrollIndicator={false}
             refreshControl={
                 <RefreshControl refreshing={isLoading} onRefresh={loadUsers} tintColor="#007AFF" />
             }
@@ -86,9 +104,26 @@ export default function MyJourneys() {
                     <Text>Must Arrive At: {item.mustArriveAt}</Text>
                     <Text>Date: {item.date}</Text>
 
-                    <Pressable style={({ pressed }) => [styles.findMatchesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}>
+                    <Pressable style={({ pressed }) => [styles.findMatchesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+                    onPress={ () => router.replace('/findMatches')}>
+
                       {({ pressed }) => (
-                      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Find matches</Text>
+                      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Find Matches</Text>
+                      )}
+                    </Pressable>
+
+                    <Pressable style={({ pressed }) => [styles.editJourneyButton, pressed && { backgroundColor: "rgb(77, 77, 77)"}]}
+                      onPress={ () => 
+                        router.push({
+
+                          pathname: "/editJourney",
+                          params: { journeyID: item.journeyID.toString() },
+
+                        })
+                      }>
+
+                      {({ pressed }) => (
+                      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Journey</Text>
                       )}
                     </Pressable>
 
@@ -142,6 +177,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
+    width: 120,
+    borderRadius: 5,
+    padding: 10,
+    
+  },
+
+  editJourneyButton: {
+
+    marginTop: 10,
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(124, 124, 124, 0.2)",
     width: 120,
     borderRadius: 5,
     padding: 10,
