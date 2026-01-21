@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable, ScrollView } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 
 export default function AddJourney() {
 
@@ -96,31 +97,73 @@ export default function AddJourney() {
 
       <Text style={styles.title}>Add a Journey</Text>
 
-      <ScrollView style={styles.form}>
+      <ScrollView
+        style={styles.form}
+        keyboardShouldPersistTaps="handled"
+      >
 
         <View style={styles.inputGroup}>
+          
+        <Text style={styles.label}>Origin</Text>
 
-          <Text style={styles.label}>Origin</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="E.g. Eglinton"
-            value={form.origin}
-            onChangeText={(text) => setForm({ ...form, origin: text })}
-          />
-
+          <View style={{ zIndex: 1000, elevation: 1000 }}>
+            <GooglePlacesAutocomplete
+              placeholder="E.g. Eglinton"
+              fetchDetails={false}
+              onPress={(data) =>
+                setForm({ ...form, origin: data.description })
+              }
+              query={{
+                key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                language: "en",
+              }}
+              textInputProps={{
+                value: form.origin,
+                onChangeText: (text) =>
+                  setForm({ ...form, origin: text }),
+              }}
+              styles={{
+                container: { flex: 0 },
+                textInput: styles.input,
+                listView: {
+                  backgroundColor: "white",
+                  zIndex: 1000,
+                },
+              }}
+            />
+          </View>
         </View>
 
         <View style={styles.inputGroup}>
 
           <Text style={styles.label}>Destination</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="E.g. Magee"
-            value={form.destination}
-            onChangeText={(text) => setForm({ ...form, destination: text })}
-          />
+          <View style={{ zIndex: 1000, elevation: 1000 }}>
+            <GooglePlacesAutocomplete
+              placeholder="E.g. Magee"
+              fetchDetails={false}
+              onPress={(data) =>
+                setForm({ ...form, destination: data.description })
+              }
+              query={{
+                key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                language: "en",
+              }}
+              textInputProps={{
+                value: form.destination,
+                onChangeText: (text) =>
+                  setForm({ ...form, destination: text }),
+              }}
+              styles={{
+                container: { flex: 0 },
+                textInput: styles.input,
+                listView: {
+                  backgroundColor: "white",
+                  zIndex: 1000,
+                },
+              }}
+            />
+          </View>
 
         </View>
 
@@ -227,6 +270,7 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
     borderColor: "gray",
+    margin: 5,
 
   },
 

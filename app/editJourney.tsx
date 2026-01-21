@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { Switch } from 'react-native';
 import type { AuthUser } from "@/context/AuthContext";
 import { useLocalSearchParams } from "expo-router";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 
 
 export default function editJourney() {
@@ -144,88 +145,136 @@ export default function editJourney() {
 
     return (
     
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <ScrollView 
+          style={{ marginTop: 40 }}
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
 
-            <Text style={styles.title}>Edit a Journey</Text>
+          <Text style={styles.title}>Edit a Journey</Text>
 
-            <View style={styles.form}>
-                   
-                <View style={styles.inputGroup}>
+          <View
+            style={styles.form}
+            // keyboardShouldPersistTaps="handled"
+          >
+                  
+            <View style={styles.inputGroup}>
+                      
+              <Text style={styles.label}>Origin</Text>
+      
+                <View style={{ zIndex: 1000, elevation: 1000 }}>
+                  <GooglePlacesAutocomplete
+                    placeholder="E.g. Eglinton"
+                    fetchDetails={false}
+                    onPress={(data) =>
+                      setForm({ ...form, origin: data.description })
+                    }
+                    query={{
+                      key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                      language: "en",
+                    }}
+                    textInputProps={{
+                      value: form.origin,
+                      onChangeText: (text) =>
+                        setForm({ ...form, origin: text }),
+                    }}
+                    styles={{
+                      container: { flex: 0 },
+                      textInput: styles.input,
+                      listView: {
+                        backgroundColor: "white",
+                        zIndex: 1000,
+                      },
+                    }}
+                  />
 
-                    <Text style={styles.label}>Origin</Text>
-
-                    <TextInput
-                    style={styles.input}
-                    value={form.origin}
-                    onChangeText={(text) => setForm({ ...form, origin: text })}
-                    />
+                </View>
+            </View>
             
-                </View>
-
-                <View style={styles.inputGroup}>
-
-                    <Text style={styles.label}>Destination</Text>
-
-                    <TextInput
-                    style={styles.input}
-                    value={form.destination}
-                    onChangeText={(text) => setForm({ ...form, destination: text })}
-                    />
+            <View style={styles.inputGroup}>
             
-                </View>
-
-                <View style={styles.inputGroup}>
-
-                    <Text style={styles.label}>Departing At</Text>
-
-                    <TextInput
-                    style={styles.input}
-                    value={form.departingAt}
-                    onChangeText={(text) => setForm({ ...form, departingAt: text })}
-                    />
+              <Text style={styles.label}>Destination</Text>
+          
+              <View style={{ zIndex: 1000, elevation: 1000 }}>
+                <GooglePlacesAutocomplete
+                  placeholder="E.g. Magee"
+                  fetchDetails={false}
+                  onPress={(data) =>
+                    setForm({ ...form, destination: data.description })
+                  }
+                  query={{
+                    key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                    language: "en",
+                  }}
+                  textInputProps={{
+                    value: form.destination,
+                    onChangeText: (text) =>
+                      setForm({ ...form, destination: text }),
+                  }}
+                  styles={{
+                    container: { flex: 0 },
+                    textInput: styles.input,
+                    listView: {
+                      backgroundColor: "white",
+                      zIndex: 1000,
+                    },
+                  }}
+                />
+              </View>
             
-                </View>
+            </View>
 
-                <View style={styles.inputGroup}>
+            <View style={styles.inputGroup}>
 
-                    <Text style={styles.label}>Must Arrive At</Text>
+                <Text style={styles.label}>Departing At</Text>
 
-                    <TextInput
-                    style={styles.input}
-                    value={form.mustArriveAt}
-                    onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
-                    />
+                <TextInput
+                style={styles.input}
+                value={form.departingAt}
+                onChangeText={(text) => setForm({ ...form, departingAt: text })}
+                />
+        
+            </View>
 
-                </View>
+            <View style={styles.inputGroup}>
 
-                <View style={styles.inputGroup}>
+                <Text style={styles.label}>Must Arrive At</Text>
 
-                    <Text style={styles.label}>Date</Text>
-
-                    <TextInput
-                    style={styles.input}
-                    value={form.date}
-                    onChangeText={(text) => setForm({ ...form, date: text })}
-                    />
-
-                </View>
-
-                <View style={styles.inputGroup}>
-
-                    <Text style={styles.label}>Status</Text>
-
-                    <TextInput
-                    style={styles.input}
-                    value={form.status}
-                    onChangeText={(text) => setForm({ ...form, status: text })}
-                    />
-
-                </View>
+                <TextInput
+                style={styles.input}
+                value={form.mustArriveAt}
+                onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
+                />
 
             </View>
 
+            <View style={styles.inputGroup}>
 
-            <Pressable
+                <Text style={styles.label}>Date</Text>
+
+                <TextInput
+                style={styles.input}
+                value={form.date}
+                onChangeText={(text) => setForm({ ...form, date: text })}
+                />
+
+            </View>
+
+            <View style={styles.inputGroup}>
+
+                <Text style={styles.label}>Status</Text>
+
+                <TextInput
+                style={styles.input}
+                value={form.status}
+                onChangeText={(text) => setForm({ ...form, status: text })}
+                />
+
+            </View>
+
+          </View>
+
+          <Pressable
             style={({ pressed }) => [styles.saveChangesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
     
             onPress={saveChanges}
@@ -234,9 +283,9 @@ export default function editJourney() {
             {({ pressed }) => (
             <Text style={[styles.buttonText, pressed && { color: "white" }]}>Save Changes</Text>
             )}
-            </Pressable>
+          </Pressable>
 
-            <Pressable
+          <Pressable
             style={({ pressed }) => [styles.deleteButton, pressed && { backgroundColor: "rgb(237, 14, 14)"}]}
     
             onPress={deleteJourney}
@@ -245,17 +294,19 @@ export default function editJourney() {
             {({ pressed }) => (
             <Text style={[styles.deleteButtonText, pressed && { color: "white" }]}>Delete This Journey</Text>
             )}
-            </Pressable>
+          </Pressable>
 
-            <Pressable
+          <Pressable
             style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
             onPress={() => router.replace('/(tabs)/myJourneys')}
             >  
             {({ pressed }) => (
             <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to My Journeys</Text>
             )}
+          
+          </Pressable>
             
-            </Pressable>
+          
 
         </ScrollView>
 
@@ -265,15 +316,11 @@ export default function editJourney() {
 
 const styles = StyleSheet.create({
 
-    container: {
-    flex: 1,
-    marginTop: 40,
-    },
+  container: {
 
-    contentContainer: {
     alignItems: "center",
-    },
 
+  },
 
   title: {
 
@@ -281,6 +328,29 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
+
+  },
+
+  form: {
+
+    marginTop: 20,
+    marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    width: 320,
+
+  },
+
+  inputGroup: {
+
+    padding: 15,
+  
+  },
+
+    label: {
+
+    fontWeight: "bold",
+    paddingBottom: 10
 
   },
 
@@ -292,17 +362,7 @@ const styles = StyleSheet.create({
  
   },
 
-    form: {
 
-    backgroundColor: "white",
-    borderRadius: 10,
-    width: 300,
-    marginTop: 20,
-    marginBottom: 20,
-    padding: 15,
-    flexGrow: 1,
-
-  },
 
     buttonText: {
 
@@ -353,26 +413,5 @@ const styles = StyleSheet.create({
     marginBottom: 50,
 
   },
-
-  switchRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginVertical: 10,
-},
-
-  inputGroup: {
-
-    padding: 15,
-  
-  },
-
-  label: {
-
-    fontWeight: "bold",
-    paddingBottom: 10
-
-  },
-
 
 })
