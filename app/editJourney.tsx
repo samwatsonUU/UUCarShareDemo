@@ -165,7 +165,7 @@ export default function editJourney() {
                 <View style={{ zIndex: 1000, elevation: 1000 }}>
                   <GooglePlacesAutocomplete
                     placeholder="E.g. Eglinton"
-                    fetchDetails={false}
+                    fetchDetails={true}
                     onPress={(data) =>
                       setForm({ ...form, origin: data.description })
                     }

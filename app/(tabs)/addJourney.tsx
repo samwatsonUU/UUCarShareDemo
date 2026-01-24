@@ -3,13 +3,20 @@ import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable, ScrollView
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function AddJourney() {
 
   const[form, setForm] = useState({
 
         origin: '',
+        originLatitude: null as number | null,
+        originLongitude: null as number | null,
+
         destination: '',
+        destinationLatitude: null as number | null,
+        destinationLongitude: null as number | null,
+
         departingAt: '',
         mustArriveAt: '',
         date: ''
@@ -59,13 +66,34 @@ export default function AddJourney() {
 
               throw new Error('Check date format');
 
+            } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
+
+              throw new Error("Please select both an origin and a destination from the suggestions list.")
+
             }
+
+
+            console.log('Journey about to be inserted:', {
+            userID: user!.userID,
+            origin: form.origin,
+            originLatitude: form.originLatitude,
+            originLongitude: form.originLongitude,
+            destination: form.destination,
+            destinationLatitude: form.destinationLatitude,
+            destinationLongitude: form.destinationLongitude,
+            departingAt: form.departingAt,
+            mustArriveAt: form.mustArriveAt,
+            date: form.date,
+            status: 'test'
+            });
+
+
 
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO journeys (userID, origin, destination, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, "test")',
-                [user!.userID, form.origin, form.destination, form.departingAt, form.mustArriveAt, form.date]
+                'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "test")',
+                [user!.userID, form.origin, form.originLatitude, form.originLongitude, form.destination, form.destinationLatitude, form.destinationLongitude, form.departingAt, form.mustArriveAt, form.date]
 
             );
 
@@ -75,7 +103,13 @@ export default function AddJourney() {
             setForm({
 
               origin: '',
+              originLatitude: null,
+              originLongitude: null,
+
               destination: '',
+              destinationLatitude: null,
+              destinationLongitude: null,
+
               departingAt: '',
               mustArriveAt: '',
               date: ''
@@ -109,10 +143,27 @@ export default function AddJourney() {
           <View style={{ zIndex: 1000, elevation: 1000 }}>
             <GooglePlacesAutocomplete
               placeholder="E.g. Eglinton"
-              fetchDetails={false}
-              onPress={(data) =>
-                setForm({ ...form, origin: data.description })
-              }
+              fetchDetails={true}
+
+              // onPress={(data) =>
+                // setForm({ ...form, origin: data.description })
+              // }
+
+              onPress={(data, details) => {
+
+
+                if(!details) return;
+
+                setForm({
+                  ...form,
+                  origin: data.description,
+                  originLatitude: details.geometry.location.lat,
+                  originLongitude: details.geometry.location.lng,
+                });
+
+              }}
+
+
               query={{
                 key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
                 language: "en",
@@ -141,10 +192,26 @@ export default function AddJourney() {
           <View style={{ zIndex: 1000, elevation: 1000 }}>
             <GooglePlacesAutocomplete
               placeholder="E.g. Magee"
-              fetchDetails={false}
-              onPress={(data) =>
-                setForm({ ...form, destination: data.description })
-              }
+              fetchDetails={true}
+
+              // onPress={(data) =>
+                // setForm({ ...form, destination: data.description })
+              // }
+
+              onPress={(data, details) => {
+
+
+                if(!details) return;
+
+                setForm({
+                  ...form,
+                  destination: data.description,
+                  destinationLatitude: details.geometry.location.lat,
+                  destinationLongitude: details.geometry.location.lng,
+                });
+
+              }}
+
               query={{
                 key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
                 language: "en",
