@@ -1,14 +1,9 @@
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 'react-native';
-import { useAuth } from "@/context/AuthContext";
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
-import { Switch } from 'react-native';
-import type { AuthUser } from "@/context/AuthContext";
 import { useLocalSearchParams } from "expo-router";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-
 
 export default function editJourney() {
 
@@ -20,8 +15,15 @@ export default function editJourney() {
 
         journeyID: '',
         userID: '',
+
         origin: '',
+        originLatitude: null as number | null,
+        originLongitude: null as number | null,
+
         destination: '',
+        destinationLatitude: null as number | null,
+        destinationLongitude: null as number | null,
+
         departingAt: '',
         mustArriveAt: '',
         date: '',
@@ -68,11 +70,29 @@ export default function editJourney() {
 
             throw new Error("Check Date Format");
 
+            }  else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
+
+              throw new Error("Please select both an origin and a destination from the suggestions list.")
+
             }
+
+            console.log('Journey about to be updated:', {
+            userID: form.userID,
+            origin: form.origin,
+            originLatitude: form.originLatitude,
+            originLongitude: form.originLongitude,
+            destination: form.destination,
+            destinationLatitude: form.destinationLatitude,
+            destinationLongitude: form.destinationLongitude,
+            departingAt: form.departingAt,
+            mustArriveAt: form.mustArriveAt,
+            date: form.date,
+            status: 'test'
+            });
 
             await db.runAsync (
 
-            'UPDATE journeys SET origin = ?, destination = ?, departingAt = ?, mustArriveAt = ?, date = ?, status = ? WHERE journeyID = ?', [form.origin, form.destination, form.departingAt, form.mustArriveAt, form.date, form.status, journeyID]
+            'UPDATE journeys SET origin = ?, originLatitude = ?, originLongitude = ?, destination = ?, destinationLatitude = ?, destinationLongitude = ?, departingAt = ?, mustArriveAt = ?, date = ?, status = ? WHERE journeyID = ?', [form.origin, form.originLatitude, form.originLongitude, form.destination, form.destinationLatitude, form.destinationLongitude, form.departingAt, form.mustArriveAt, form.date, form.status, journeyID]
 
             )
 
@@ -124,8 +144,15 @@ export default function editJourney() {
 
                         journeyID: result.journeyID.toString(),
                         userID: result.userID ?? '',
+
                         origin: result.origin ?? '',
+                        originLatitude: result.originLatitude ?? 0,
+                        originLongitude: result.originLongitude ?? 0,
+
                         destination: result.destination ?? '',
+                        destinationLatitude: result.destinationLatitude ?? 0,
+                        destinationLongitude: result.destinationLongitude ?? 0,
+                        
                         departingAt: result.departingAt ?? '',
                         mustArriveAt: result.mustArriveAt ?? '',
                         date: result.date ?? '',
@@ -145,11 +172,7 @@ export default function editJourney() {
 
     return (
     
-        <ScrollView 
-          style={{ marginTop: 40 }}
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
+        <View style={styles.container}>
 
           <Text style={styles.title}>Edit a Journey</Text>
 
@@ -166,9 +189,21 @@ export default function editJourney() {
                   <GooglePlacesAutocomplete
                     placeholder="E.g. Eglinton"
                     fetchDetails={true}
-                    onPress={(data) =>
-                      setForm({ ...form, origin: data.description })
-                    }
+
+                    onPress={(data, details) => {
+
+
+                      if(!details) return;
+
+                      setForm({
+                        ...form,
+                        origin: data.description,
+                        originLatitude: details.geometry.location.lat,
+                        originLongitude: details.geometry.location.lng,
+                      });
+
+                    }}
+
                     query={{
                       key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
                       language: "en",
@@ -198,10 +233,22 @@ export default function editJourney() {
               <View style={{ zIndex: 1000, elevation: 1000 }}>
                 <GooglePlacesAutocomplete
                   placeholder="E.g. Magee"
-                  fetchDetails={false}
-                  onPress={(data) =>
-                    setForm({ ...form, destination: data.description })
-                  }
+                  fetchDetails={true}
+
+                  onPress={(data, details) => {
+
+
+                    if(!details) return;
+
+                    setForm({
+                      ...form,
+                      destination: data.description,
+                      destinationLatitude: details.geometry.location.lat,
+                      destinationLongitude: details.geometry.location.lng,
+                    });
+
+                  }}
+
                   query={{
                     key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
                     language: "en",
@@ -308,7 +355,7 @@ export default function editJourney() {
             
           
 
-        </ScrollView>
+        </View>
 
     )
 
@@ -318,6 +365,7 @@ const styles = StyleSheet.create({
 
   container: {
 
+    marginTop: 40,
     alignItems: "center",
 
   },

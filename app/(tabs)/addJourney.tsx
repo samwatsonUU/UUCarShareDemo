@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable, ScrollView } from 'react-native'
+import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function AddJourney() {
 
@@ -131,9 +130,8 @@ export default function AddJourney() {
 
       <Text style={styles.title}>Add a Journey</Text>
 
-      <ScrollView
+      <View
         style={styles.form}
-        keyboardShouldPersistTaps="handled"
       >
 
         <View style={styles.inputGroup}>
@@ -273,7 +271,7 @@ export default function AddJourney() {
 
         </View>
 
-      </ScrollView>
+      </View>
 
       <Pressable
       style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
