@@ -129,7 +129,7 @@ export default function MyJourneys() {
 
                 </View>
             )}
-            ListEmptyComponent={<Text>You haven't added any journeys - go to the "Add A Journey" screen to do so.</Text>}
+            ListEmptyComponent={<Text>You haven't added any journeys yet, go to "Add A Journey" to start carpooling!</Text>}
         />
 
     </View>
@@ -148,10 +148,9 @@ const styles = StyleSheet.create({
 
   title: {
 
-    fontSize: 48,
-    paddingBottom: 10,
+    fontSize: 24,
     borderBottomWidth: 2,
-    borderColor: "rgba(11, 161, 226, 1)"
+    borderColor: "rgba(11, 161, 226, 1)",
 
   },
 

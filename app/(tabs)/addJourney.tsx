@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Alert, Text, Pressable } from 'react-native'
+import { View, TextInput, StyleSheet, Alert, Text, Pressable, Keyboard } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
@@ -22,6 +22,9 @@ export default function AddJourney() {
 
     })
 
+    const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
+
+
     const validTime = (value: string): boolean => {
 
       return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -33,6 +36,7 @@ export default function AddJourney() {
       if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
 
       const [day, month, year] = value.split('/').map(Number);
+
       const date = new Date(year, month - 1, day);
 
       return (
@@ -91,7 +95,7 @@ export default function AddJourney() {
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "test")',
+                'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Pending")',
                 [user!.userID, form.origin, form.originLatitude, form.originLongitude, form.destination, form.destinationLatitude, form.destinationLongitude, form.departingAt, form.mustArriveAt, form.date]
 
             );
@@ -126,164 +130,211 @@ export default function AddJourney() {
       };
 
   return (
-    <View style={styles.container}>
-
-      <Text style={styles.title}>Add a Journey</Text>
-
-      <View
-        style={styles.form}
-      >
-
-        <View style={styles.inputGroup}>
-          
-        <Text style={styles.label}>Origin</Text>
-
-          <View style={{ zIndex: 1000, elevation: 1000 }}>
-            <GooglePlacesAutocomplete
-              placeholder="E.g. Eglinton"
-              fetchDetails={true}
-
-              // onPress={(data) =>
-                // setForm({ ...form, origin: data.description })
-              // }
-
-              onPress={(data, details) => {
 
 
-                if(!details) return;
+    <Pressable
+    style={{ flex: 1 }}
+    onPress={() => {
+      Keyboard.dismiss();
+      setActiveAutocomplete(null);
+    }}
+    >
+      <View style={styles.container}>
 
-                setForm({
-                  ...form,
-                  origin: data.description,
-                  originLatitude: details.geometry.location.lat,
-                  originLongitude: details.geometry.location.lng,
-                });
+        <Text style={styles.title}>Add a Journey</Text>
 
-              }}
+        <View style={styles.form}>
+
+          <View style={styles.inputGroup}>
+            
+          <Text style={styles.label}>Origin</Text>
+
+            <View
+              style={[
+                styles.inputWrapper,
+                {
+                  zIndex: activeAutocomplete === "origin" ? 3000 : 1,
+                  elevation: activeAutocomplete === "origin" ? 3000 : 1,
+                },
+              ]}
+            >
+              <GooglePlacesAutocomplete
+                placeholder=""
+                fetchDetails={true}
+
+                onPress={(data, details) => {
+
+                  if(!details) return;
+
+                  setActiveAutocomplete(null);
+
+                  setForm({
+                    ...form,
+                    origin: data.description,
+                    originLatitude: details.geometry.location.lat,
+                    originLongitude: details.geometry.location.lng,
+                  });
+
+                }}
 
 
-              query={{
-                key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
-                language: "en",
-              }}
-              textInputProps={{
-                value: form.origin,
-                onChangeText: (text) =>
+                query={{
+                  key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                  language: "en",
+                }}
+                textInputProps={{
+                  value: form.origin,
+                  onFocus: () => setActiveAutocomplete("origin"),
+                  onBlur: () => setActiveAutocomplete(null),
+                  onChangeText: (text) =>
                   setForm({ ...form, origin: text }),
-              }}
-              styles={{
-                container: { flex: 0 },
-                textInput: styles.input,
-                listView: {
-                  backgroundColor: "white",
-                  zIndex: 1000,
-                },
-              }}
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-
-          <Text style={styles.label}>Destination</Text>
-
-          <View style={{ zIndex: 1000, elevation: 1000 }}>
-            <GooglePlacesAutocomplete
-              placeholder="E.g. Magee"
-              fetchDetails={true}
-
-              // onPress={(data) =>
-                // setForm({ ...form, destination: data.description })
-              // }
-
-              onPress={(data, details) => {
-
-
-                if(!details) return;
-
-                setForm({
-                  ...form,
-                  destination: data.description,
-                  destinationLatitude: details.geometry.location.lat,
-                  destinationLongitude: details.geometry.location.lng,
-                });
-
-              }}
-
-              query={{
-                key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
-                language: "en",
-              }}
-              textInputProps={{
-                value: form.destination,
-                onChangeText: (text) =>
-                  setForm({ ...form, destination: text }),
-              }}
-              styles={{
-                container: { flex: 0 },
-                textInput: styles.input,
-                listView: {
-                  backgroundColor: "white",
-                  zIndex: 1000,
-                },
-              }}
-            />
+                }}
+                styles={{
+                  container: { flex: 0 },
+                  textInput: styles.input,
+                  listView: {
+                    position: "absolute",
+                    top: 45,           
+                    left: 0,
+                    right: 0,
+                    zIndex: 2000,
+                  },
+                }}
+              />
+            </View>
           </View>
 
+          <View style={styles.inputGroup}>
+
+            <Text style={styles.label}>Destination</Text>
+
+            <View
+              style={[
+                styles.inputWrapper,
+                {
+                  zIndex: activeAutocomplete === "destination" ? 3000 : 1,
+                  elevation: activeAutocomplete === "destination" ? 3000 : 1,
+                },
+              ]}
+            >
+
+              <GooglePlacesAutocomplete
+                placeholder=""
+                fetchDetails={true}
+
+                onPress={(data, details) => {
+
+                  if(!details) return;
+
+                  setActiveAutocomplete(null);
+
+                  setForm({
+                    ...form,
+                    destination: data.description,
+                    destinationLatitude: details.geometry.location.lat,
+                    destinationLongitude: details.geometry.location.lng,
+                  });
+
+                }}
+
+                query={{
+                  key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                  language: "en",
+                }}
+                textInputProps={{
+                  value: form.destination,
+                  onFocus: () => setActiveAutocomplete("destination"),
+                  onBlur: () => setActiveAutocomplete(null),
+                  onChangeText: (text) =>
+                    setForm({ ...form, destination: text }),
+                }}
+                styles={{
+                  container: { flex: 0 },
+                  textInput: styles.input,
+                  listView: {
+                    position: "absolute",
+                    top: 45,           
+                    left: 0,
+                    right: 0,
+                    zIndex: 2000,
+                  },
+                }}
+              />
+            </View>
+
+          </View>
+
+          <View style={styles.inputGroup}>
+
+            <Text style={styles.label}>Departing At</Text>
+
+            <View style={styles.inputWrapper}>
+
+            <TextInput
+              style={styles.input}
+              placeholder="00:00"
+              value={form.departingAt}
+              onChangeText={(text) => setForm({ ...form, departingAt: text })}
+            />
+
+            </View>
+
+
+
+          </View>
+
+          <View style={styles.inputGroup}>
+
+            <Text style={styles.label}>Must Arrive At</Text>
+
+            <View style={styles.inputWrapper}>
+
+            <TextInput
+              style={styles.input}
+              placeholder="00:00"
+              value={form.mustArriveAt}
+              onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
+            />
+
+            </View>
+
+
+
+          </View>
+
+          <View style={styles.inputGroup}>
+
+            <Text style={styles.label}>Date</Text>
+
+            <View style={styles.inputWrapper}>
+
+              <TextInput
+              style={styles.input}
+              placeholder="01/01/1900"
+              value={form.date}
+              onChangeText={(text) => setForm({ ...form, date: text })}
+              />
+
+            </View>
+
+          </View>
+
         </View>
 
-        <View style={styles.inputGroup}>
+        <Pressable
+        style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+        onPress={handleSubmit}
+        >  
+          {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Add Journey</Text>
+          )}
 
-          <Text style={styles.label}>Departing At</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="08:00"
-            value={form.departingAt}
-            onChangeText={(text) => setForm({ ...form, departingAt: text })}
-          />
-
-        </View>
-
-        <View style={styles.inputGroup}>
-
-          <Text style={styles.label}>Must Arrive At</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="09:00"
-            value={form.mustArriveAt}
-            onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
-          />
-
-        </View>
-
-        <View style={styles.inputGroup}>
-
-          <Text style={styles.label}>Date</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="01/01/1900"
-            value={form.date}
-            onChangeText={(text) => setForm({ ...form, date: text })}
-          />
-
-        </View>
+        </Pressable>
 
       </View>
 
-      <Pressable
-      style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-      onPress={handleSubmit}
-      >  
-        {({ pressed }) => (
-        <Text style={[styles.buttonText, pressed && { color: "white" }]}>Add Journey</Text>
-        )}
+    </Pressable>
 
-      </Pressable>
-
-    </View>
   );  
 
 
@@ -301,8 +352,7 @@ const styles = StyleSheet.create({
 
   title: {
 
-    fontSize: 48,
-    paddingBottom: 10,
+    fontSize: 24,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
 
@@ -310,9 +360,6 @@ const styles = StyleSheet.create({
 
   form: {
 
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: "white",
     borderRadius: 10,
     width: 320,
 
@@ -320,14 +367,16 @@ const styles = StyleSheet.create({
 
   inputGroup: {
 
-    padding: 15,
-  
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+
   },
 
   label: {
 
+    width: 90,
     fontWeight: "bold",
-    paddingBottom: 10
 
   },
 
@@ -335,7 +384,14 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
     borderColor: "gray",
+    backgroundColor: "white",
     margin: 5,
+
+  },
+
+  inputWrapper: {
+
+    flex: 1,
 
   },
 
