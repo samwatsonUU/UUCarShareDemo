@@ -1,8 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native';
 import { FlatList } from 'react-native';
-import { exampleJourneys } from "@/data/exampleJourneys"
-import { Button } from '@react-navigation/elements';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { RefreshControl } from "react-native";
@@ -105,7 +102,14 @@ export default function MyJourneys() {
                     <Text>Date: {item.date}</Text>
 
                     <Pressable style={({ pressed }) => [styles.findMatchesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-                    onPress={ () => router.replace('/findMatches')}>
+
+                      onPress={() =>
+                        router.push({
+                          pathname: "/findMatches",
+                          params: { journeyID: item.journeyID.toString() },
+                        })
+                      } 
+                    >
 
                       {({ pressed }) => (
                       <Text style={[styles.buttonText, pressed && { color: "white" }]}>Find Matches</Text>
