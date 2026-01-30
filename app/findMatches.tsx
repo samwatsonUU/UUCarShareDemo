@@ -9,7 +9,11 @@ type Journey = {
   journeyID: number;
   userID: string;
   origin: string;
-  destination: string;
+  originLatitude: number,
+  originLongitude: number,
+  destination: '',
+  destinationLatitude: number,
+  destinationLongitude: number,
   departingAt: string;
   mustArriveAt: string;
   date: string;
@@ -34,13 +38,45 @@ export default function FindMatches() {
           "SELECT * FROM journeys WHERE journeyID = ?",
           [journeyID]
         );
-        setJourney(selectedJourney  ?? null);
+        
 
-        // All journeys NOT owned by current user
+         if (!selectedJourney) {
+
+          setJourney(null);
+          setMatches([]);
+          return;
+
+        }
+
+        setJourney(selectedJourney);
+
+        const TIME_WINDOW_MINUTES = 30;
+
+        // Get matching journeys
         const results = await db.getAllAsync<Journey>(
-          "SELECT * FROM journeys WHERE userID != ?",
-          [user!.userID]
+        `SELECT * FROM journeys WHERE userID != ? AND date = ? AND ABS(
+          (
+            CAST(substr(departingAt, 1, 2) AS INTEGER) * 60 +
+            CAST(substr(departingAt, 4, 2) AS INTEGER)
+          ) -
+          (
+            CAST(substr(?, 1, 2) AS INTEGER) * 60 +
+            CAST(substr(?, 4, 2) AS INTEGER)
+          )) <= ? AND originLatitude = ? AND originLongitude = ? AND destinationLatitude = ? AND destinationLongitude = ?`,
+        
+            [
+              user!.userID,
+              selectedJourney.date,
+              selectedJourney.departingAt,
+              selectedJourney.departingAt,
+              TIME_WINDOW_MINUTES,
+              selectedJourney.originLatitude,
+              selectedJourney.originLongitude,
+              selectedJourney.destinationLatitude,
+              selectedJourney.destinationLongitude
+            ]
         );
+
         setMatches(results);
 
       } catch (err) {
@@ -84,6 +120,7 @@ export default function FindMatches() {
               <Text>Origin: {match.origin}</Text>
               <Text>Destination: {match.destination}</Text>
               <Text>Departing At: {match.departingAt}</Text>
+              <Text>Must Arrive At: {match.mustArriveAt}</Text>
               <Text>Date: {match.date}</Text>
             </View>
           ))

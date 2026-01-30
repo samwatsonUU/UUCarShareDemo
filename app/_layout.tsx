@@ -81,7 +81,7 @@ export default function RootLayout() {
               status TEXT NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS requests (
+            CREATE TABLE IF NOT EXISTS reviews (
               reviewID INTEGER PRIMARY KEY AUTOINCREMENT,
               reviewerID INTEGER NOT NULL,
               revieweeID INTEGER NOT NULL,
