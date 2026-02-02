@@ -7,7 +7,7 @@ import { router } from "expo-router";
 
 type Journey = {
   journeyID: number;
-  userID: string;
+  userID: number;
   origin: string;
   originLatitude: number,
   originLongitude: number,
@@ -20,14 +20,45 @@ type Journey = {
   status: string;
 };
 
+type JourneyWithUserAndDistance = Journey & {
+  firstName: string;
+  originDistance: number;
+  destinationDistance: number;
+};
+
+
+
+
 export default function FindMatches() {
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const db = useSQLiteContext();
   const { user } = useAuth();
 
   const [journey, setJourney] = useState<Journey | null>(null);
-  const [matches, setMatches] = useState<Journey[]>([]);
+  const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const haversineKm = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    const R = 6371;
+    const toRad = (v: number) => (v * Math.PI) / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,36 +79,102 @@ export default function FindMatches() {
 
         }
 
+        const RADIUS_KM = 5;
+
+        // Rough bounding box deltas
+        const LAT_DELTA = RADIUS_KM / 111;
+        const LNG_DELTA =
+        RADIUS_KM /
+        (111 * Math.cos(selectedJourney.originLatitude * Math.PI / 180));
+
         setJourney(selectedJourney);
 
         const TIME_WINDOW_MINUTES = 30;
 
+        console.log("Executing match query WITHOUT acos");
         // Get matching journeys
-        const results = await db.getAllAsync<Journey>(
-        `SELECT * FROM journeys WHERE userID != ? AND date = ? AND ABS(
-          (
-            CAST(substr(departingAt, 1, 2) AS INTEGER) * 60 +
-            CAST(substr(departingAt, 4, 2) AS INTEGER)
-          ) -
-          (
-            CAST(substr(?, 1, 2) AS INTEGER) * 60 +
-            CAST(substr(?, 4, 2) AS INTEGER)
-          )) <= ? AND originLatitude = ? AND originLongitude = ? AND destinationLatitude = ? AND destinationLongitude = ?`,
-        
-            [
-              user!.userID,
-              selectedJourney.date,
-              selectedJourney.departingAt,
-              selectedJourney.departingAt,
-              TIME_WINDOW_MINUTES,
-              selectedJourney.originLatitude,
-              selectedJourney.originLongitude,
-              selectedJourney.destinationLatitude,
-              selectedJourney.destinationLongitude
-            ]
+        const results = await db.getAllAsync<Journey & { firstName: string }>(
+        `
+        SELECT
+          j.*,
+          u.firstName
+        FROM journeys j
+        JOIN users u ON u.userID = j.userID
+        WHERE
+          j.userID != ?
+          AND j.date = ?
+
+          AND ABS(
+            (
+              CAST(substr(j.departingAt, 1, 2) AS INTEGER) * 60 +
+              CAST(substr(j.departingAt, 4, 2) AS INTEGER)
+            ) -
+            (
+              CAST(substr(?, 1, 2) AS INTEGER) * 60 +
+              CAST(substr(?, 4, 2) AS INTEGER)
+            )
+          ) <= ?
+
+          -- Origin bounding box
+          AND j.originLatitude BETWEEN ? AND ?
+          AND j.originLongitude BETWEEN ? AND ?
+
+          -- Destination bounding box
+          AND j.destinationLatitude BETWEEN ? AND ?
+          AND j.destinationLongitude BETWEEN ? AND ?
+        `,
+        [
+          user!.userID,
+          selectedJourney.date,
+          selectedJourney.departingAt,
+          selectedJourney.departingAt,
+          TIME_WINDOW_MINUTES,
+
+          selectedJourney.originLatitude - LAT_DELTA,
+          selectedJourney.originLatitude + LAT_DELTA,
+          selectedJourney.originLongitude - LNG_DELTA,
+          selectedJourney.originLongitude + LNG_DELTA,
+
+          selectedJourney.destinationLatitude - LAT_DELTA,
+          selectedJourney.destinationLatitude + LAT_DELTA,
+          selectedJourney.destinationLongitude - LNG_DELTA,
+          selectedJourney.destinationLongitude + LNG_DELTA,
+        ]
         );
 
-        setMatches(results);
+
+
+        const enriched = results
+        .map((j) => {
+          const originDistance = haversineKm(
+            selectedJourney.originLatitude,
+            selectedJourney.originLongitude,
+            j.originLatitude,
+            j.originLongitude
+          );
+
+          const destinationDistance = haversineKm(
+            selectedJourney.destinationLatitude,
+            selectedJourney.destinationLongitude,
+            j.destinationLatitude,
+            j.destinationLongitude
+          );
+
+          return {
+            ...j,
+            originDistance,
+            destinationDistance,
+          };
+        })
+        .filter(
+          (j) =>
+            j.originDistance <= RADIUS_KM &&
+            j.destinationDistance <= RADIUS_KM
+        )
+        .sort((a, b) => a.originDistance - b.originDistance);
+
+      setMatches(enriched);
+
 
       } catch (err) {
         console.error("Failed to data", err);
@@ -117,24 +214,36 @@ export default function FindMatches() {
         ) : (
           matches.map((match) => (
             <View key={match.journeyID} style={styles.matchCard}>
+              <Text>Driver: {match.firstName}</Text>
               <Text>Origin: {match.origin}</Text>
+              <Text>Origin Distance: {match.originDistance.toFixed(2)} km</Text>
               <Text>Destination: {match.destination}</Text>
               <Text>Departing At: {match.departingAt}</Text>
               <Text>Must Arrive At: {match.mustArriveAt}</Text>
               <Text>Date: {match.date}</Text>
+
+              <Pressable
+              style={({ pressed }) => [styles.requestButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+              >
+
+                {({ pressed }) => (
+                <Text style={[styles.buttonText, pressed && { color: "white" }]}>Send Request</Text>
+                )}
+              </Pressable>
+
             </View>
           ))
         )}
       </ScrollView>
 
       <Pressable
-        style={styles.backButton}
+        style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
         onPress={() => router.replace('/(tabs)/myJourneys')}
       
       >
-
-        <Text>Back to My Journeys</Text>
-
+      {({ pressed }) => (
+      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to My Journeys</Text>
+      )}
       </Pressable>
       
     </View>
@@ -175,16 +284,20 @@ const styles = StyleSheet.create({
 
   backButton: {
 
-    borderWidth: 1,
-    padding: 10,
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "rgba(168, 168, 168, 0.2)",
+    width: 150,
     borderRadius: 5,
+    padding: 10,
     marginBottom: 100,
 
   },
 
   matchResults: {
 
-    borderWidth: 1,
+    borderTopWidth: 1,
+    paddingTop: 20,
     marginBottom: 20,
     marginTop: 20,
     width: 320,
@@ -195,8 +308,9 @@ const styles = StyleSheet.create({
   matchCard: {
     
     marginBottom: 10,
-    backgroundColor: "rgba(124,124,124,0.15)",
-    borderRadius: 10,
+    backgroundColor: "rgb(255, 255, 255)",
+    borderRadius: 15,
+    padding: 15,
 
   },
 
@@ -206,4 +320,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
 
   },
+
+      buttonText: {
+
+    color: "rgba(11, 161, 226, 1)",
+
+  },
+
+  requestButton: {
+ 
+    marginTop: 10,
+    alignItems: "center",
+    backgroundColor: "rgba(11, 161, 226, 0.2)",
+    borderRadius: 5,
+    padding: 10,
+    width: 120,
+    marginHorizontal: "auto",
+
+  },
+
+  requestButtonText: {
+ 
+    color: "red",
+
+  }
 })
