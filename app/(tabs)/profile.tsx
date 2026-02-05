@@ -74,8 +74,6 @@ export default function Profile() {
 
     <View style={styles.container}>
 
-      <Text style={styles.title}>My Profile</Text>
-
       <FlatList
       style={styles.list}
       data={User}
@@ -99,7 +97,7 @@ export default function Profile() {
       />
 
       <Pressable style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-        onPress={ () => router.replace('/editProfile')}>
+        onPress={ () => router.push('/editProfile')}>
         {({ pressed }) => (
           <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Profile</Text>
         )}
@@ -124,7 +122,6 @@ const styles = StyleSheet.create({
   container: {
 
     alignItems: "center",
-    marginTop: 40,
 
   },
 

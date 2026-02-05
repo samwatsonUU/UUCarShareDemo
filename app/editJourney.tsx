@@ -426,16 +426,6 @@ export default function editJourney() {
               <Text style={[styles.deleteButtonText, pressed && { color: "white" }]}>Delete This Journey</Text>
               )}
             </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-              onPress={() => router.replace('/(tabs)/myJourneys')}
-              >  
-              {({ pressed }) => (
-              <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to My Journeys</Text>
-              )}
-            
-            </Pressable>
               
           </View>
 

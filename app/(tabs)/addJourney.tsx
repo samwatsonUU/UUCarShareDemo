@@ -3,6 +3,8 @@ import { View, TextInput, StyleSheet, Alert, Text, Pressable, Keyboard } from 'r
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 
 export default function AddJourney() {
 
@@ -16,37 +18,17 @@ export default function AddJourney() {
         destinationLatitude: null as number | null,
         destinationLongitude: null as number | null,
 
-        departingAt: '',
-        mustArriveAt: '',
-        date: ''
+        departingAt: null as Date | null,
+        mustArriveAt: null as Date | null,
+        date: null as Date | null,
 
     })
 
+    const [showDepartingPicker, setShowDepartingPicker] = useState(false);
+    const [showArrivingPicker, setShowArrivingPicker] = useState(false);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+
     const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
-
-
-    const validTime = (value: string): boolean => {
-
-      return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
-
-    }
-
-    const validDate = (value: string): boolean => {
-
-      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
-
-      const [day, month, year] = value.split('/').map(Number);
-
-      const date = new Date(year, month - 1, day);
-
-      return (
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day
-      );
-
-    };
-
 
     const db = useSQLiteContext();
 
@@ -61,14 +43,6 @@ export default function AddJourney() {
 
               throw new Error('All fields are required');
                 
-            } else if(!validTime(form.departingAt) || !validTime(form.mustArriveAt)) {
-
-              throw new Error('Check time format');
-
-            } else if(!validDate(form.date)) {
-
-              throw new Error('Check date format');
-
             } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
 
               throw new Error("Please select both an origin and a destination from the suggestions list.")
@@ -90,13 +64,29 @@ export default function AddJourney() {
             status: 'test'
             });
 
+            const formattedDate = form.date.toLocaleDateString("en-GB");
+
+            const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
+
+            const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
 
 
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Pending")',
-                [user!.userID, form.origin, form.originLatitude, form.originLongitude, form.destination, form.destinationLatitude, form.destinationLongitude, form.departingAt, form.mustArriveAt, form.date]
+              'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Pending")',
+              [
+                user!.userID,
+                form.origin,
+                form.originLatitude,
+                form.originLongitude,
+                form.destination,
+                form.destinationLatitude,
+                form.destinationLongitude,
+                formattedDepartingAt,
+                formattedMustArriveAt,
+                formattedDate
+              ]
 
             );
 
@@ -113,9 +103,9 @@ export default function AddJourney() {
               destinationLatitude: null,
               destinationLongitude: null,
 
-              departingAt: '',
-              mustArriveAt: '',
-              date: ''
+              departingAt: null,
+              mustArriveAt: null,
+              date: null,
 
             });
         
@@ -140,8 +130,6 @@ export default function AddJourney() {
     }}
     >
       <View style={styles.container}>
-
-        <Text style={styles.title}>Add a Journey</Text>
 
         <View style={styles.form}>
 
@@ -191,10 +179,17 @@ export default function AddJourney() {
                 }}
                 styles={{
                   container: { flex: 0 },
-                  textInput: styles.input,
+                  textInput: {
+                    height: 44,
+                    paddingVertical: 0,
+                    paddingHorizontal: 10,
+                    borderWidth: 1,
+                    borderColor: "gray",
+                    margin: 10,
+                  },
                   listView: {
                     position: "absolute",
-                    top: 45,           
+                    top: 44,
                     left: 0,
                     right: 0,
                     zIndex: 2000,
@@ -248,17 +243,24 @@ export default function AddJourney() {
                   onChangeText: (text) =>
                     setForm({ ...form, destination: text }),
                 }}
-                styles={{
-                  container: { flex: 0 },
-                  textInput: styles.input,
-                  listView: {
-                    position: "absolute",
-                    top: 45,           
-                    left: 0,
-                    right: 0,
-                    zIndex: 2000,
-                  },
-                }}
+                  styles={{
+                    container: { flex: 0 },
+                    textInput: {
+                      height: 44,
+                      paddingVertical: 0,  
+                      paddingHorizontal: 10,
+                      borderWidth: 1,
+                      borderColor: "gray",
+                      margin: 10,
+                    },
+                    listView: {
+                      position: "absolute",
+                      top: 44,
+                      left: 0,
+                      right: 0,
+                      zIndex: 2000,
+                    },
+                  }}
               />
             </View>
 
@@ -270,16 +272,28 @@ export default function AddJourney() {
 
             <View style={styles.inputWrapper}>
 
-            <TextInput
-              style={styles.input}
-              placeholder="00:00"
-              value={form.departingAt}
-              onChangeText={(text) => setForm({ ...form, departingAt: text })}
-            />
+              <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShowDepartingPicker(true)}>
+                <Text>
+                  {form.departingAt
+                    ? form.departingAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "Select time"}
+                </Text>
+              </Pressable>
+
+              {showDepartingPicker && (
+                <DateTimePicker
+                  value={form.departingAt ?? new Date()}
+                  mode="time"
+                  display="clock"
+                  is24Hour
+                  onChange={(e, selected) => {
+                    setShowDepartingPicker(false);
+                    if (selected) setForm({ ...form, departingAt: selected });
+                  }}
+                />
+              )}
 
             </View>
-
-
 
           </View>
 
@@ -289,16 +303,28 @@ export default function AddJourney() {
 
             <View style={styles.inputWrapper}>
 
-            <TextInput
-              style={styles.input}
-              placeholder="00:00"
-              value={form.mustArriveAt}
-              onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
-            />
+              <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShowArrivingPicker(true)}>
+                <Text>
+                  {form.mustArriveAt
+                    ? form.mustArriveAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "Select time"}
+                </Text>
+              </Pressable>
+
+              {showArrivingPicker && (
+                <DateTimePicker
+                  value={form.mustArriveAt ?? new Date()}
+                  mode="time"
+                  display="clock"
+                  is24Hour
+                  onChange={(e, selected) => {
+                    setShowArrivingPicker(false);
+                    if (selected) setForm({ ...form, mustArriveAt: selected });
+                  }}
+                />
+              )}
 
             </View>
-
-
 
           </View>
 
@@ -307,15 +333,27 @@ export default function AddJourney() {
             <Text style={styles.label}>Date</Text>
 
             <View style={styles.inputWrapper}>
-
-              <TextInput
-              style={styles.input}
-              placeholder="01/01/1900"
-              value={form.date}
-              onChangeText={(text) => setForm({ ...form, date: text })}
-              />
-
+              <Pressable style={[styles.input, { justifyContent: "center" }]} onPress={() => setShowDatePicker(true)}>
+                <Text>
+                  {form.date
+                    ? form.date.toLocaleDateString("en-GB")
+                    : "Select date"}
+                </Text>
+              </Pressable>
             </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.date ?? new Date()}
+                mode="date"
+                display="calendar"
+                onChange={(e, selected) => {
+                  setShowDatePicker(false);
+                  if (selected) setForm({ ...form, date: selected });
+                }}
+              />
+            )}
+
 
           </View>
 
@@ -346,7 +384,6 @@ const styles = StyleSheet.create({
   container: {
 
     alignItems: "center",
-    marginTop: 40,
 
   },
 
@@ -362,6 +399,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 10,
     width: 320,
+    
 
   },
 
@@ -382,12 +420,17 @@ const styles = StyleSheet.create({
 
   input: {
 
+    height: 44,
     borderWidth: 1,
     borderColor: "gray",
     backgroundColor: "white",
-    margin: 5,
+    margin: 10,
+    paddingHorizontal: 10,
+    justifyContent: "center",
+    borderRadius: 5,
 
   },
+
 
   inputWrapper: {
 

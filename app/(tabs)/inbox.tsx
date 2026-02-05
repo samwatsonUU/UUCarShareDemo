@@ -11,19 +11,6 @@ export default function Inbox() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Inbox</Text>
-
-
-
-
-
-
-
-
-
-
-
-
 
       {/* Toggle */}
             <View style={styles.toggleContainer}>
@@ -63,34 +50,6 @@ export default function Inbox() {
             </View>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       <View style={styles.messageDisplay}>
         <FlatList
           data={dataToRender}
@@ -126,7 +85,7 @@ const styles = StyleSheet.create({
   container: {
 
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 10,
 
   },
 
@@ -142,6 +101,7 @@ const styles = StyleSheet.create({
   messageDisplay: {
 
     width: 350,
+    marginBottom: 180,
 
   },
 

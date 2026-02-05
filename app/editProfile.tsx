@@ -119,9 +119,7 @@ export default function editProfile() {
 
         <View style={styles.container}>
         
-            <Text style={styles.title}>Edit Profile</Text>
-
-            <ScrollView style={styles.form}>
+          <ScrollView style={styles.form}>
                 
             
                 <TextInput
@@ -212,16 +210,6 @@ export default function editProfile() {
             <Text style={[styles.buttonText, pressed && { color: "white" }]}>Save Changes</Text>
             )}
             </Pressable>
-    
-            <Pressable
-            style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-            onPress={() => router.replace('/(tabs)/profile')}
-            >  
-            {({ pressed }) => (
-            <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to Profile</Text>
-            )}
-            </Pressable>
-
 
         </View>
 
@@ -234,7 +222,6 @@ const styles = StyleSheet.create({
   container: {
 
     alignItems: "center",
-    marginTop: 40,
 
   },
 

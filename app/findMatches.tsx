@@ -192,8 +192,6 @@ export default function FindMatches() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Matches</Text>
-
       <Text style={styles.subtitle}>
         Showing all matches for the following journey:
       </Text>
@@ -208,7 +206,7 @@ export default function FindMatches() {
         </View>
       )}
 
-      <ScrollView style={styles.matchResults}>
+      <ScrollView style={styles.matchResults} showsVerticalScrollIndicator={false}>
          {matches.length === 0 ? (
           <Text style={styles.emptyText}>No matching journeys found.</Text>
         ) : (
@@ -224,28 +222,27 @@ export default function FindMatches() {
 
               <Pressable
               style={({ pressed }) => [styles.requestButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-              >
+              
+              onPress={ () => 
+                router.push({
 
+                  pathname: "/sendRequest",
+                  params: { journeyID: match.journeyID.toString() },
+
+                })
+              }>
+              
                 {({ pressed }) => (
-                <Text style={[styles.buttonText, pressed && { color: "white" }]}>Send Request</Text>
+                <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                
+                Send Request</Text>
                 )}
               </Pressable>
 
             </View>
           ))
         )}
-      </ScrollView>
-
-      <Pressable
-        style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-        onPress={() => router.replace('/(tabs)/myJourneys')}
-      
-      >
-      {({ pressed }) => (
-      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to My Journeys</Text>
-      )}
-      </Pressable>
-      
+      </ScrollView>      
     </View>
   );
 }
@@ -256,7 +253,6 @@ const styles = StyleSheet.create({
 
     flex: 1,
     alignItems: "center",
-    marginTop: 40
 
   },
 
@@ -268,7 +264,8 @@ const styles = StyleSheet.create({
 
   },
 
-    subtitle: {
+  subtitle: {
+    fontSize: 16,
     marginTop: 10,
     marginBottom: 10,
 
@@ -290,15 +287,17 @@ const styles = StyleSheet.create({
     width: 150,
     borderRadius: 5,
     padding: 10,
-    marginBottom: 100,
+    marginBottom: 70,
 
   },
 
   matchResults: {
 
     borderTopWidth: 1,
+    borderColor: "rgba(11, 161, 226, 0.2)",
     paddingTop: 20,
-    marginBottom: 20,
+    paddingBottom: 20,
+    marginBottom: 60,
     marginTop: 20,
     width: 320,
     alignContent: "center",
@@ -307,7 +306,7 @@ const styles = StyleSheet.create({
 
   matchCard: {
     
-    marginBottom: 10,
+    marginBottom: 20,
     backgroundColor: "rgb(255, 255, 255)",
     borderRadius: 15,
     padding: 15,

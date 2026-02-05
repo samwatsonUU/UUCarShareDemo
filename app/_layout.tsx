@@ -104,12 +104,13 @@ export default function RootLayout() {
           {/* <Stack initialRouteName="index"> */}
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="editProfile" options={{ headerShown: false }} />
+            <Stack.Screen name="editProfile" options={{ headerShown: true, title: 'Edit Profile' }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen name="editJourney" options={{ headerShown: false }} />
-            <Stack.Screen name="findMatches" options={{ headerShown: false }} />
+            <Stack.Screen name="editJourney" options={{ headerShown: true, title: 'Edit Journey' }} />
+            <Stack.Screen name="findMatches" options={{ headerShown: true, title: 'Matches'  }} />
+            <Stack.Screen name="sendRequest" options={{ headerShown: true, title: 'Send a Request'  }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

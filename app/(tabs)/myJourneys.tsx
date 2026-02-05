@@ -81,8 +81,6 @@ export default function MyJourneys() {
 
     <View style={styles.container}>
 
-      <Text style={styles.title}>My Journeys</Text>
-
       <FlatList
             style={styles.list}
             data={Journeys}
@@ -146,7 +144,6 @@ const styles = StyleSheet.create({
 
     flex: 1,
     alignItems: "center",
-    marginTop: 40
 
   },
 
