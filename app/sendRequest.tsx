@@ -42,6 +42,7 @@ export default function sendRequest() {
 
                 " SELECT j.*, u.firstName FROM journeys j JOIN users u ON u.userID = j.userID WHERE journeyID = ?",
 
+                // Hello
         
 
                 [journeyID]
@@ -232,6 +233,5 @@ sendButtonText: {
   color: "rgba(11, 161, 226, 1)",
   fontSize: 16,
 },
-
 
 })
