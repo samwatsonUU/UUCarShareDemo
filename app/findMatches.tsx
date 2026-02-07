@@ -11,7 +11,7 @@ type Journey = {
   origin: string;
   originLatitude: number,
   originLongitude: number,
-  destination: '',
+  destination: string,
   destinationLatitude: number,
   destinationLongitude: number,
   departingAt: string;
@@ -30,6 +30,7 @@ type JourneyWithUserAndDistance = Journey & {
 
 
 export default function FindMatches() {
+
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const db = useSQLiteContext();
   const { user } = useAuth();
