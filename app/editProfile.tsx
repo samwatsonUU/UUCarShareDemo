@@ -175,7 +175,7 @@ export default function editProfile() {
                 </View>
 
                 <View style={styles.switchRow}>
-                  <Text>Prefers Same Gender</Text>
+                  <Text>Match with same gender only</Text>
                   <Switch
                     value={form.prefersSameGender}
                     onValueChange={(value) =>

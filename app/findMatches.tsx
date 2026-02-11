@@ -105,6 +105,8 @@ export default function FindMatches() {
           j.userID != ?
           AND j.date = ?
 
+          AND u.canDrive = 1
+
           AND ABS(
             (
               CAST(substr(j.departingAt, 1, 2) AS INTEGER) * 60 +
@@ -123,6 +125,15 @@ export default function FindMatches() {
           -- Destination bounding box
           AND j.destinationLatitude BETWEEN ? AND ?
           AND j.destinationLongitude BETWEEN ? AND ?
+
+
+          -- Exclude journeys already requested by this user
+          AND NOT EXISTS (
+          SELECT 1
+          FROM requests r
+          WHERE r.journeyID = j.journeyID
+          AND r.requesterID = ?
+          )
         `,
         [
           user!.userID,
@@ -140,6 +151,8 @@ export default function FindMatches() {
           selectedJourney.destinationLatitude + LAT_DELTA,
           selectedJourney.destinationLongitude - LNG_DELTA,
           selectedJourney.destinationLongitude + LNG_DELTA,
+
+          user!.userID,
         ]
         );
 

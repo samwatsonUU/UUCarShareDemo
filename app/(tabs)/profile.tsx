@@ -89,7 +89,7 @@ export default function Profile() {
           <Text>Role: {item.role}</Text>
           <Text>Bio: {item.bio}</Text>
           <Text>Can Drive: {item.canDrive}</Text>
-          <Text>Prefers Same Gender: {item.prefersSameGender}</Text>
+          <Text>Match with same gender only: {item.prefersSameGender}</Text>
           <Text>Smoking Allowed: {item.smokingAllowed}</Text>
         </View>
         )}

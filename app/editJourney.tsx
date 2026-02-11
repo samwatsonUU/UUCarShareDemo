@@ -4,127 +4,113 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 
 export default function editJourney() {
 
-    const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
+  const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
 
-    const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
+  const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
 
-    const db = useSQLiteContext();
+  const db = useSQLiteContext();
 
-    const[form, setForm] = useState({
-
-        journeyID: '',
-        userID: '',
-
-        origin: '',
-        originLatitude: null as number | null,
-        originLongitude: null as number | null,
-
-        destination: '',
-        destinationLatitude: null as number | null,
-        destinationLongitude: null as number | null,
-
-        departingAt: '',
-        mustArriveAt: '',
-        date: '',
-        status: ''
-
-    })
+  const [showDepartingPicker, setShowDepartingPicker] = useState(false);
+  const [showArrivingPicker, setShowArrivingPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
 
-    const validTime = (value: string): boolean => {
+  const[form, setForm] = useState({
 
-      return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+    journeyID: '',
+    userID: '',
 
-    }
+    origin: '',
+    originLatitude: null as number | null,
+    originLongitude: null as number | null,
 
-    const validDate = (value: string): boolean => {
+    destination: '',
+    destinationLatitude: null as number | null,
+    destinationLongitude: null as number | null,
 
-      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
+    departingAt: null as Date | null,
+    mustArriveAt: null as Date | null,
+    date: null as Date | null,
+    status: ''
 
-      const [day, month, year] = value.split('/').map(Number);
-      const date = new Date(year, month - 1, day);
+  })
 
-      return (
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day
+  const saveChanges = async () => {
+    try {
+
+      // Basic required field check
+      if (
+        !form.origin ||
+        !form.destination ||
+        !form.departingAt ||
+        !form.mustArriveAt ||
+        !form.date ||
+        !form.status
+      ) {
+        throw new Error("No fields can be empty.");
+      }
+
+      if (
+        form.originLatitude === null ||
+        form.originLongitude === null ||
+        form.destinationLatitude === null ||
+        form.destinationLongitude === null
+      ) {
+        throw new Error("Please select both an origin and a destination from the suggestions list.");
+      }
+
+      // Format Date objects into DB string format
+      const formattedDate = form.date.toLocaleDateString("en-GB");
+      const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
+      const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
+
+      await db.runAsync(
+        `UPDATE journeys 
+        SET origin = ?, 
+            originLatitude = ?, 
+            originLongitude = ?, 
+            destination = ?, 
+            destinationLatitude = ?, 
+            destinationLongitude = ?, 
+            departingAt = ?, 
+            mustArriveAt = ?, 
+            date = ?, 
+            status = ?
+        WHERE journeyID = ?`,
+        [
+          form.origin,
+          form.originLatitude,
+          form.originLongitude,
+          form.destination,
+          form.destinationLatitude,
+          form.destinationLongitude,
+          formattedDepartingAt,
+          formattedMustArriveAt,
+          formattedDate,
+          form.status,
+          journeyID
+        ]
       );
 
-    };
+      Alert.alert("Success", "Changes Saved!");
+      router.replace("/(tabs)/myJourneys");
 
-    const saveChanges = async () => {
+    } catch (error: unknown) {
 
-        try {
+      console.error(error);
 
-            // ensure no inputs are empty
-            if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date || !form.status) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred while updating the journey.";
 
-            throw new Error('No fields can be empty.');
-
-            } else if (!validTime(form.departingAt) || !validTime(form.mustArriveAt)) {
-
-            throw new Error("Check Time Format");
-
-            } else if (!validDate(form.date)) {
-
-            throw new Error("Check Date Format");
-
-            }  else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
-
-              throw new Error("Please select both an origin and a destination from the suggestions list.")
-
-            }
-
-            console.log('Journey about to be updated:', {
-            userID: form.userID,
-            origin: form.origin,
-            originLatitude: form.originLatitude,
-            originLongitude: form.originLongitude,
-            destination: form.destination,
-            destinationLatitude: form.destinationLatitude,
-            destinationLongitude: form.destinationLongitude,
-            departingAt: form.departingAt,
-            mustArriveAt: form.mustArriveAt,
-            date: form.date,
-            status: 'test'
-            });
-
-            await db.runAsync (
-
-            'UPDATE journeys SET origin = ?, originLatitude = ?, originLongitude = ?, destination = ?, destinationLatitude = ?, destinationLongitude = ?, departingAt = ?, mustArriveAt = ?, date = ?, status = ? WHERE journeyID = ?', [form.origin, form.originLatitude, form.originLongitude, form.destination, form.destinationLatitude, form.destinationLongitude, form.departingAt, form.mustArriveAt, form.date, form.status, journeyID]
-
-            )
-
-            Alert.alert("Alert", "Changes Saved!")
-            router.replace('/(tabs)/myJourneys')
-
-        } catch (error: unknown) {
-
-            console.error(error);
-
-            const message = error instanceof Error ? error.message: 'An error occurred while updating the journey.';
-
-            Alert.alert('Error', message);
-
-        }
-
+      Alert.alert("Error", message);
     }
-
-    // const deleteJourney = async () => {
-
-    //     await db.runAsync (
-
-    //     'DELETE FROM journeys WHERE journeyID = ?', [journeyID]
-
-    //     )
-
-    //     Alert.alert("Alert", "Journey Deleted!")
-    //     router.replace('/(tabs)/myJourneys')
-
-    // }
+  };
 
     const deleteJourney = () => {
 
@@ -171,26 +157,39 @@ export default function editJourney() {
 
                 if (result) {
 
-                    setForm({
+                  const [depHour, depMin] = result.departingAt.split(":").map(Number);
+                  const [arrHour, arrMin] = result.mustArriveAt.split(":").map(Number);
 
-                        journeyID: result.journeyID.toString(),
-                        userID: result.userID ?? '',
+                  const [day, month, year] = result.date.split("/").map(Number);
 
-                        origin: result.origin ?? '',
-                        originLatitude: result.originLatitude ?? 0,
-                        originLongitude: result.originLongitude ?? 0,
+                  const dateObj = new Date(year, month - 1, day);
 
-                        destination: result.destination ?? '',
-                        destinationLatitude: result.destinationLatitude ?? 0,
-                        destinationLongitude: result.destinationLongitude ?? 0,
-                        
-                        departingAt: result.departingAt ?? '',
-                        mustArriveAt: result.mustArriveAt ?? '',
-                        date: result.date ?? '',
-                        status: result.status ?? ''
+                  const departingDate = new Date(dateObj);
+                  departingDate.setHours(depHour, depMin, 0, 0);
 
-                    });
+                  const arrivingDate = new Date(dateObj);
+                  arrivingDate.setHours(arrHour, arrMin, 0, 0);
+
+                  setForm({
+                    journeyID: result.journeyID.toString(),
+                    userID: result.userID ?? '',
+
+                    origin: result.origin ?? '',
+                    originLatitude: result.originLatitude ?? null,
+                    originLongitude: result.originLongitude ?? null,
+
+                    destination: result.destination ?? '',
+                    destinationLatitude: result.destinationLatitude ?? null,
+                    destinationLongitude: result.destinationLongitude ?? null,
+
+                    departingAt: departingDate,
+                    mustArriveAt: arrivingDate,
+                    date: dateObj,
+
+                    status: result.status ?? ''
+                  });
                 }
+
             } catch (error) {
 
                 console.error("Failed to load journey", error);
@@ -339,53 +338,101 @@ export default function editJourney() {
               
               </View>
 
-              <View style={styles.inputGroup}>
 
-                  <Text style={styles.label}>Departing At</Text>
+<View style={styles.inputGroup}>
+  <Text style={styles.label}>Departing At</Text>
 
-                  <View style={styles.inputWrapper}>
+  <View style={styles.inputWrapper}>
+    <Pressable
+      style={[styles.input, { justifyContent: "center", height: 44 }]}
+      onPress={() => setShowDepartingPicker(true)}
+    >
+      <Text>
+        {form.departingAt
+          ? form.departingAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "Select time"}
+      </Text>
+    </Pressable>
 
-                  <TextInput
-                  style={styles.input}
-                  value={form.departingAt}
-                  onChangeText={(text) => setForm({ ...form, departingAt: text })}
-                  />
+    {showDepartingPicker && (
+      <DateTimePicker
+        value={form.departingAt ?? new Date()}
+        mode="time"
+        display="clock"
+        is24Hour
+        onChange={(e, selected) => {
+          setShowDepartingPicker(false);
+          if (selected) setForm({ ...form, departingAt: selected });
+        }}
+      />
+    )}
+  </View>
+</View>
 
-                  </View>
-          
-              </View>
 
-              <View style={styles.inputGroup}>
+<View style={styles.inputGroup}>
+  <Text style={styles.label}>Must Arrive At</Text>
 
-                  <Text style={styles.label}>Must Arrive At</Text>
+  <View style={styles.inputWrapper}>
+    <Pressable
+      style={[styles.input, { justifyContent: "center", height: 44 }]}
+      onPress={() => setShowArrivingPicker(true)}
+    >
+      <Text>
+        {form.mustArriveAt
+          ? form.mustArriveAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "Select time"}
+      </Text>
+    </Pressable>
 
-                  <View style={styles.inputWrapper}>
+    {showArrivingPicker && (
+      <DateTimePicker
+        value={form.mustArriveAt ?? new Date()}
+        mode="time"
+        display="clock"
+        is24Hour
+        onChange={(e, selected) => {
+          setShowArrivingPicker(false);
+          if (selected) setForm({ ...form, mustArriveAt: selected });
+        }}
+      />
+    )}
+  </View>
+</View>
 
-                  <TextInput
-                  style={styles.input}
-                  value={form.mustArriveAt}
-                  onChangeText={(text) => setForm({ ...form, mustArriveAt: text })}
-                  />
 
-                  </View>
 
-              </View>
 
-              <View style={styles.inputGroup}>
+<View style={styles.inputGroup}>
+  <Text style={styles.label}>Date</Text>
 
-                  <Text style={styles.label}>Date</Text>
+  <View style={styles.inputWrapper}>
+    <Pressable
+      style={[styles.input, { justifyContent: "center", height: 44 }]}
+      onPress={() => setShowDatePicker(true)}
+    >
+      <Text>
+        {form.date
+          ? form.date.toLocaleDateString("en-GB")
+          : "Select date"}
+      </Text>
+    </Pressable>
+  </View>
 
-                  <View style={styles.inputWrapper}>
+  {showDatePicker && (
+    <DateTimePicker
+      value={form.date ?? new Date()}
+      mode="date"
+      display="calendar"
+      onChange={(e, selected) => {
+        setShowDatePicker(false);
+        if (selected) setForm({ ...form, date: selected });
+      }}
+    />
+  )}
+</View>
 
-                  <TextInput
-                  style={styles.input}
-                  value={form.date}
-                  onChangeText={(text) => setForm({ ...form, date: text })}
-                  />
 
-                  </View>
-
-              </View>
 
               <View style={styles.inputGroup}>
 
@@ -438,71 +485,55 @@ export default function editJourney() {
 const styles = StyleSheet.create({
 
   container: {
-
     alignItems: "center",
-    marginTop: 40,
-
   },
 
   title: {
-
     fontSize: 24,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
-
   },
 
   form: {
-
     borderRadius: 10,
     width: 320,
-
   },
 
   inputGroup: {
-
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-  
   },
 
-    label: {
-
+  label: {
     width: 90,
     fontWeight: "bold",
-
   },
 
-    input: {
-
+  input: {
+    height: 44,
     borderWidth: 1,
     borderColor: "gray",
     backgroundColor: "white",
-    margin: 5,
- 
+    margin: 10,
+    paddingHorizontal: 10,
+    justifyContent: "center",
+    borderRadius: 5,
   },
 
   inputWrapper: {
-
     flex: 1,
-
   },
 
-    buttonText: {
-
+  buttonText: {
     color: "rgba(11, 161, 226, 1)",
-
   },
 
-    deleteButtonText: {
-
+  deleteButtonText: {
     color: "rgb(0, 0, 0)",
-
   },
 
   saveChangesButton: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
@@ -510,12 +541,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-
-
   },
 
-    deleteButton: {
-
+  deleteButton: {
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(201, 24, 24, 0.55)",
@@ -523,20 +551,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-
-
   },
 
-  backButton: {
-
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: "rgba(168, 168, 168, 0.2)",
-    width: 180,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 50,
-
-  },
-
-})
+});
