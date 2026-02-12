@@ -1,9 +1,10 @@
 import { StyleSheet, View, Text, ActivityIndicator, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
+import { useFocusEffect } from '@react-navigation/native';
 
 type Journey = {
   journeyID: number;
@@ -30,6 +31,7 @@ type JourneyWithUserAndDistance = Journey & {
 
 
 export default function FindMatches() {
+  
 
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const db = useSQLiteContext();
@@ -60,9 +62,7 @@ export default function FindMatches() {
     return 2 * R * Math.asin(Math.sqrt(a));
   };
 
-
-  useEffect(() => {
-    const loadData = async () => {
+      const loadData = async () => {
       try {
 
         // Selected journey
@@ -94,7 +94,7 @@ export default function FindMatches() {
 
         console.log("Executing match query WITHOUT acos");
         // Get matching journeys
-        const results = await db.getAllAsync<Journey & { firstName: string }>(
+       const results = await db.getAllAsync<Journey & { firstName: string }>(
         `
         SELECT
           j.*,
@@ -106,6 +106,18 @@ export default function FindMatches() {
           AND j.date = ?
 
           AND u.canDrive = 1
+
+          -- Smoking must match exactly
+          AND u.smokingAllowed = ?
+
+          -- Gender preference must match exactly
+          AND u.prefersSameGender = ?
+
+          -- If both require same gender, genders must match
+          AND (
+                ? = 0
+                OR u.gender = ?
+              )
 
           AND ABS(
             (
@@ -126,27 +138,40 @@ export default function FindMatches() {
           AND j.destinationLatitude BETWEEN ? AND ?
           AND j.destinationLongitude BETWEEN ? AND ?
 
-
           -- Exclude journeys already requested by this user
           AND NOT EXISTS (
-          SELECT 1
-          FROM requests r
-          WHERE r.journeyID = j.journeyID
-          AND r.requesterID = ?
+            SELECT 1
+            FROM requests r
+            WHERE r.journeyID = j.journeyID
+            AND r.requesterID = ?
           )
         `,
         [
           user!.userID,
           selectedJourney.date,
+
+          // Smoking exact match
+          user!.smokingAllowed,
+
+          // prefersSameGender exact match
+          user!.prefersSameGender,
+
+          // gender enforcement if prefersSameGender = 1
+          user!.prefersSameGender,
+          user!.gender,
+
+          // Time window
           selectedJourney.departingAt,
           selectedJourney.departingAt,
           TIME_WINDOW_MINUTES,
 
+          // Origin bounding box
           selectedJourney.originLatitude - LAT_DELTA,
           selectedJourney.originLatitude + LAT_DELTA,
           selectedJourney.originLongitude - LNG_DELTA,
           selectedJourney.originLongitude + LNG_DELTA,
 
+          // Destination bounding box
           selectedJourney.destinationLatitude - LAT_DELTA,
           selectedJourney.destinationLatitude + LAT_DELTA,
           selectedJourney.destinationLongitude - LNG_DELTA,
@@ -155,8 +180,6 @@ export default function FindMatches() {
           user!.userID,
         ]
         );
-
-
 
         const enriched = results
         .map((j) => {
@@ -197,8 +220,13 @@ export default function FindMatches() {
       }
     };
 
-    loadData();
-  }, [journeyID]);
+
+  useFocusEffect(
+    useCallback(() => {
+    loadData(); // will run every time screen comes into focus
+  }, [journeyID])
+);
+
 
   if (loading) {
     return <ActivityIndicator size="large" />;

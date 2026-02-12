@@ -1,15 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { useAuth } from "@/context/AuthContext";
-import { router } from "expo-router";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { RefreshControl } from "react-native";
-import { useEffect, useState } from "react";
+import { router, useNavigation } from "expo-router";
+import { Switch } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { AuthUser } from "@/context/AuthContext";
 
-
-type User = {
-
-  userID: number,
+type UserForm = {
   email: string,
   password: string,
   firstName: string,
@@ -17,178 +15,255 @@ type User = {
   gender: string,
   role: string,
   bio: string,
-  canDrive: number,
-  prefersSameGender: number,
-  smokingAllowed: number
-
+  canDrive: boolean,
+  prefersSameGender: boolean,
+  smokingAllowed: boolean
 }
-
 
 export default function Profile() {
 
-  const [User, setUser] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const db = useSQLiteContext();
-  const { user, logout } = useAuth();
-  
-  useEffect(() => {
-    if (user?.userID) {
-      loadUsers();
-    }
-  }, [user]);
-
-
-  const loadUsers = async () => {
-  
-      try {
-  
-          setIsLoading(true);
-  
-          const results = await db.getAllAsync<User>(
-            "SELECT * FROM Users WHERE userID = ?", [user!.userID]
-          );
-  
-          setUser(results)
-  
-      } catch (error) {
-  
-          console.error("Database error", error);
-  
-      } finally {
-  
-          setIsLoading(false);
-  
-      }
-  
-  };
+  const { user, login, logout } = useAuth();
+  const navigation = useNavigation();
 
   const logoutUser = () => {
+      logout();
+      router.replace('/(auth)/login');
+    }
 
-    logout();
-    router.replace('/(auth)/login')
+  const [form, setForm] = useState<UserForm>({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    gender: '',
+    role: '',
+    bio: '',
+    canDrive: false,
+    prefersSameGender: false,
+    smokingAllowed: false
+  });
 
-  }
-  
-  
+  const [initialForm, setInitialForm] = useState<UserForm | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  /** --- Load user from DB --- */
+  const loadUser = async () => {
+    if (!user?.userID) return;
+    try {
+      setIsLoading(true);
+      const results = await db.getAllAsync<AuthUser>(
+        "SELECT * FROM Users WHERE userID = ?", [user.userID]
+      );
+      if (results.length > 0) {
+        const u = results[0];
+        const userForm: UserForm = {
+          email: u.email ?? '',
+          password: u.password ?? '',
+          firstName: u.firstName ?? '',
+          lastName: u.lastName ?? '',
+          gender: u.gender ?? '',
+          role: u.role ?? '',
+          bio: u.bio ?? '',
+          canDrive: u.canDrive === 1,
+          prefersSameGender: u.prefersSameGender === 1,
+          smokingAllowed: u.smokingAllowed === 1
+        };
+        setForm(userForm);
+        setInitialForm(userForm); // keep a copy for change detection
+      }
+    } catch (err) {
+      console.error("Database error", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+useFocusEffect(
+  useCallback(() => {
+    loadUser(); // load when screen is focused
+  }, [user])
+);
+
+
+  /** --- Validate --- */
+  const validEmail = (value: string) => /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
+  const validPassword = (value: string) => /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
+
+  /** --- Save changes --- */
+  const saveChanges = async () => {
+    try {
+      if (!form.email || !form.password || !form.firstName || !form.lastName || !form.gender || !form.role) {
+        throw new Error('No fields can be empty.');
+      } else if (!validEmail(form.email)) {
+        throw new Error("Email must end with @ulster.ac.uk");
+      } else if (!validPassword(form.password)) {
+        throw new Error("Password must be 8+ chars, 1 uppercase, 1 number, 1 special char");
+      }
+
+      await db.runAsync(
+        'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, gender = ?, role = ?, bio = ?, canDrive = ?, prefersSameGender = ?, smokingAllowed = ? WHERE userID = ?',
+        [
+          form.email,
+          form.password,
+          form.firstName,
+          form.lastName,
+          form.gender,
+          form.role,
+          form.bio,
+          form.canDrive ? 1 : 0,
+          form.prefersSameGender ? 1 : 0,
+          form.smokingAllowed ? 1 : 0,
+          user!.userID
+        ]
+      );
+
+      const updatedUser = await db.getFirstAsync<AuthUser>(
+        'SELECT * FROM users WHERE userID = ?',
+        [user!.userID]
+      );
+
+      if (updatedUser) {
+        login(updatedUser); // refresh AuthContext
+        Alert.alert("Success", "Changes Saved!");
+        loadUser(); // reload and reset initialForm
+      }
+
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred.';
+      Alert.alert('Error', message);
+    }
+  };
+
   return (
-
-    <View style={styles.container}>
-
-      <FlatList
-      style={styles.list}
-      data={User}
-      refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadUsers} tintColor="#007AFF" />}
-      keyExtractor={(item) => item.userID.toString()}
-      renderItem={({ item }) => (
-        <View style={styles.journeyContainer}>
-          <Text>Email: {item.email}</Text>
-          <Text>First Name: {item.firstName}</Text>
-          <Text>Last Name: {item.lastName}</Text>
-          <Text>Password: {item.password}</Text>
-          <Text>Gender: {item.gender}</Text>
-          <Text>Role: {item.role}</Text>
-          <Text>Bio: {item.bio}</Text>
-          <Text>Can Drive: {item.canDrive}</Text>
-          <Text>Match with same gender only: {item.prefersSameGender}</Text>
-          <Text>Smoking Allowed: {item.smokingAllowed}</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.form}>
+        {/** Email */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput style={styles.input} value={form.email} onChangeText={text => setForm({...form, email: text})} />
         </View>
-        )}
-      ListEmptyComponent={<Text>You haven't added any journeys - go to the "Add A Journey" screen to do so.</Text>}
-      />
 
-      <Pressable style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-        onPress={ () => router.push('/editProfile')}>
-        {({ pressed }) => (
-          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Profile</Text>
-        )}
+        {/** Password */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Password</Text>
+          <TextInput style={styles.input} value={form.password} secureTextEntry onChangeText={text => setForm({...form, password: text})} />
+        </View>
+
+        {/** First Name */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>First Name</Text>
+          <TextInput style={styles.input} value={form.firstName} onChangeText={text => setForm({...form, firstName: text})} />
+        </View>
+
+        {/** Last Name */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput style={styles.input} value={form.lastName} onChangeText={text => setForm({...form, lastName: text})} />
+        </View>
+
+        {/** Gender */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Gender</Text>
+          <TextInput style={styles.input} value={form.gender} onChangeText={text => setForm({...form, gender: text})} />
+        </View>
+
+        {/** Role */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Role</Text>
+          <TextInput style={styles.input} value={form.role} onChangeText={text => setForm({...form, role: text})} />
+        </View>
+
+        {/** Bio */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Bio</Text>
+          <TextInput style={[styles.input, { height: 80 }]} multiline value={form.bio} onChangeText={text => setForm({...form, bio: text})} />
+        </View>
+
+        {/** Can Drive */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Can Drive</Text>
+          <Switch value={form.canDrive} onValueChange={value => setForm({...form, canDrive: value})} />
+        </View>
+
+        {/** Same Gender */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Match with same gender only</Text>
+          <Switch value={form.prefersSameGender} onValueChange={value => setForm({...form, prefersSameGender: value})} />
+        </View>
+
+        {/** Smoking */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Smoking Allowed</Text>
+          <Switch value={form.smokingAllowed} onValueChange={value => setForm({...form, smokingAllowed: value})} />
+        </View>
+      </View>
+
+      <Pressable style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }]} onPress={saveChanges}>
+        {({ pressed }) => <Text style={[styles.buttonText, pressed && { color: "white" }]}>Save</Text>}
       </Pressable>
 
       <Pressable
-        style={({ pressed }) => [styles.logoutButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-        onPress={logoutUser}  
+        style={({ pressed }) => [
+          styles.logoutButton,
+          pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }
+        ]}
+        onPress={logoutUser}
       >
         {({ pressed }) => (
-          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Logout</Text>
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+            Logout
+          </Text>
         )}
-        
       </Pressable>
 
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
-
     alignItems: "center",
-
+    paddingBottom: 40
   },
-
-  title: {
-
-    fontSize: 48,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderColor: "rgba(11, 161, 226, 1)",
-
-  },
-
-  profileInfo: {
-
-    marginTop: 20,
-    backgroundColor: "white",
+  form: {
     borderRadius: 10,
-    width: 340
-
+    width: 320,
+    marginTop: 20
   },
-
-  infoGroup: {
-
-    padding: 10,
+  inputGroup: {
     flexDirection: "row",
     alignItems: "center",
-
+    paddingVertical: 10
   },
-
   label: {
-
-    fontWeight: "bold",
-    flexBasis: 150,
-    paddingRight: 10,
-
+    width: 90,
+    fontWeight: "bold"
   },
-
   input: {
-
-    color: "gray",
-    borderWidth: 1,
-    padding: 5,
     flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "gray",
+    backgroundColor: "white",
+    marginHorizontal: 10,
+    paddingHorizontal: 10,
     borderRadius: 5
-
   },
-
   button: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
     width: 100,
     borderRadius: 5,
     padding: 10,
-    marginTop: 10,
-
+    marginTop: 20
   },
-
   buttonText: {
-
-    color: "rgba(11, 161, 226, 1)",
-
+    color: "rgba(11, 161, 226, 1)"
   },
 
-  logoutButton: {
-
+    logoutButton: {
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(124, 124, 124, 0.2)",
@@ -196,23 +271,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginTop: 10,
-
-  }, 
-
-    list: {
-
-    width: 320,
-    marginTop: 20,
-
   },
 
-  journeyContainer: {
-
-    marginBottom: 20,
-    padding: 20,
-    backgroundColor: "rgb(255, 255, 255)",
-    borderRadius: 15,
-
-  },
-   
-})
+});

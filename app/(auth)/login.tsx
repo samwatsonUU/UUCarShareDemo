@@ -1,3 +1,17 @@
+
+/*
+
+  Application login screen
+
+  Presents the user with email and password inputs
+  When the log-in button is pressed, the DB is queried for matching results
+  If none are found, present an error
+  Otherwise, the user is taken to myJourneys.tsx
+
+  Alternatively, buttons also exist to "reset password" and register for the application
+
+*/
+
 import { StyleSheet, Text, View, ScrollView, Pressable, Alert, TextInput } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from "react";
@@ -7,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 
 
 type UserRow = {
+
   userID: number;
   email: string;
   password: string;
@@ -24,72 +39,76 @@ type UserRow = {
 
 export default function login() { 
 
-  const { user, login } = useAuth();
+  const { login } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false)
 
+  const db = useSQLiteContext();
+
+  const register = async () => { router.replace("/(auth)/register") }
+
   const[form, setForm] = useState({
 
-        email: '',
-        password: '',
+    email: '',
+    password: '',
 
-    })
+  })
 
-    const db = useSQLiteContext();
+  const handleSubmit = async () => {
 
-    const handleSubmit = async () => {
+    try {
 
-      try {
+      // If email and password are both null, display an alert and return
+      if(!form.email || !form.password) {
 
-        if(!form.email || !form.password) {
+      Alert.alert("Error", "Please enter both an email and password.");
+      return;
 
-        Alert.alert("Error", "Please enter both an email and password.");
-        return;
+    } 
 
-      } 
+    // Alternatively, if values have been provided, attempt retrieval from DB
+    const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND password = ?`, [form.email, form.password]);
 
-      // retrieve from the DB
-      const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND password = ?`, [form.email, form.password]);
+    // If after retrieval attempt user is null, display alert saying user not found and return
+    if(!user) {
 
-      if(!user) {
+      Alert.alert("Login Failed", "Invalid email or password - please try again.");
+      return;
 
-        Alert.alert("Login Failed", "Invalid email or password - please try again.");
-        return;
+    }
 
-      }
+    // Alternatively, if a user has been found, set thier details in AuthContext as the retrieved details from the DB
+    login({
 
-      console.log('LOGGED IN USER:', user);
+      userID: user.userID,
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      gender: user.gender,
+      role: user.role,
+      bio: user.bio,
+      canDrive: user.canDrive,
+      prefersSameGender: user.prefersSameGender,
+      smokingAllowed: user.smokingAllowed,
 
-      login({
-        userID: user.userID,
-        email: user.email,
-        password: user.password,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        gender: user.gender,
-        role: user.role,
-        bio: user.bio,
-        canDrive: user.canDrive,
-        prefersSameGender: user.prefersSameGender,
-        smokingAllowed: user.smokingAllowed,
-      });
+    });
 
-      router.replace('/(tabs)/myJourneys');
+    // Finally, navigate the user to the myJourneys.tsx page
+    router.replace('/(tabs)/myJourneys');
 
-      } catch (error: unknown) {
+    } catch (error: unknown) {
 
-          console.error(error);
+        console.error(error);
 
-          const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
+        const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
 
-          Alert.alert('Error', message);
-      }
+        Alert.alert('Error', message);
 
-      };
+    }
+  };
 
-      const register = async () => { router.replace("/(auth)/register") }
-
-    return (
+  return (
 
     <View style={styles.container}>
 
@@ -98,7 +117,6 @@ export default function login() {
       
       <ScrollView style={styles.form}>
     
-
         <TextInput
         style={styles.input}
         placeholder="Email"
@@ -119,15 +137,15 @@ export default function login() {
         />
 
         <Pressable
+
           style={({ pressed }) => [styles.buttonHoldToShow, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-          
           onPressIn={() => setShowPassword(true)}
           onPressOut={() => setShowPassword(false)}
 
         >  
 
           {({ pressed }) => (
-          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Hold to Show</Text>
+            <Text style={[styles.buttonText, pressed && { color: "white" }]}>Hold to Show</Text>
           )}
 
         </Pressable>
@@ -135,37 +153,46 @@ export default function login() {
       </ScrollView>
       
       <Pressable
-      style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
 
-      onPress={handleSubmit}
+        style={({ pressed }) => [styles.button, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+        onPress={handleSubmit}
 
       >  
-      {({ pressed }) => (
-      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Login</Text>
-      )}
+
+        {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "white" }]}>Login</Text>
+        )}
+
       </Pressable>
 
       <Pressable
-      style={({ pressed }) => [styles.registerButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-      onPress={register}
+
+        style={({ pressed }) => [styles.registerButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
+        onPress={register}
+
       >  
+
       {({ pressed }) => (
-      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Register</Text>
+        <Text style={[styles.buttonText, pressed && { color: "white" }]}>Register</Text>
       )}
+
       </Pressable>
 
       <Pressable
-      onPress={ () => router.replace("/(auth)/forgotPassword")}
-      >  
-      {({ pressed }) => (
-      <Text style={[styles.buttonText, pressed && { color: "Black" }]}>Forgot Password</Text>
-      )}
-      </Pressable>
 
+        onPress={ () => router.replace("/(auth)/forgotPassword")}
+
+      >  
+
+        {({ pressed }) => (
+          <Text style={[styles.buttonText, pressed && { color: "Black" }]}>Forgot Password</Text>
+        )}
+
+      </Pressable>
 
     </View>
 
-    );
+  );
 }
 
 const styles = StyleSheet.create({
