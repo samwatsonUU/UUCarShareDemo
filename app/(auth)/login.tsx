@@ -19,7 +19,6 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 
-
 type UserRow = {
 
   userID: number;
@@ -35,7 +34,6 @@ type UserRow = {
   smokingAllowed: number;
   
 };
-
 
 export default function login() { 
 

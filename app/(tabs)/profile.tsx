@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router, useNavigation } from "expo-router";
 import { Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { AuthUser } from "@/context/AuthContext";
+import { Picker } from '@react-native-picker/picker';  
 
 type UserForm = {
   email: string,
@@ -162,16 +163,43 @@ useFocusEffect(
           <TextInput style={styles.input} value={form.lastName} onChangeText={text => setForm({...form, lastName: text})} />
         </View>
 
-        {/** Gender */}
+        {/* Gender */}
         <View style={styles.inputGroup}>
+
           <Text style={styles.label}>Gender</Text>
-          <TextInput style={styles.input} value={form.gender} onChangeText={text => setForm({...form, gender: text})} />
+
+          <View style={styles.pickerContainer}>
+
+            <Picker
+              selectedValue={form.gender}
+              onValueChange={(value) => setForm({ ...form, gender: value})}
+            >
+
+              <Picker.Item label="Male" value="Male" />
+              <Picker.Item label="Female" value="Female" />
+              <Picker.Item label="Other" value="Other" />
+
+            </Picker>
+          </View>
         </View>
 
-        {/** Role */}
+        {/* Role */}
         <View style={styles.inputGroup}>
+
           <Text style={styles.label}>Role</Text>
-          <TextInput style={styles.input} value={form.role} onChangeText={text => setForm({...form, role: text})} />
+
+          <View style={styles.pickerContainer}>
+
+            <Picker
+              selectedValue={form.role}
+              onValueChange={(value) => setForm({ ...form, role: value})}
+            >
+
+              <Picker.Item label="Student" value="Student" />
+              <Picker.Item label="Staff" value="Staff" />
+
+            </Picker>
+          </View>
         </View>
 
         {/** Bio */}
@@ -259,6 +287,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 20
   },
+  
   buttonText: {
     color: "rgba(11, 161, 226, 1)"
   },
@@ -271,6 +300,19 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginTop: 10,
+  },
+
+  pickerContainer: {
+
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "gray",
+    backgroundColor: "white",
+    marginHorizontal: 10,
+    paddingHorizontal: 10,
+    borderRadius: 5
+
   },
 
 });

@@ -377,11 +377,13 @@ const styles = StyleSheet.create({
   },
 
   pickerContainer: {
-  borderWidth: 1,
-  borderColor: 'gray',
-  margin: 5,
-  borderRadius: 4,
-  overflow: 'hidden',
+
+    borderWidth: 1,
+    borderColor: 'gray',
+    margin: 5,
+    borderRadius: 4,
+    overflow: 'hidden',
+
   },
 
   buttonHoldToShow: {

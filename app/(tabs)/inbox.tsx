@@ -4,50 +4,53 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect } from '@react-navigation/native';
 
-type Message = {
-  messageID: number;
-  messageBody: string;
-  messageSender?: string;
-  messageRecipient?: string;
-  messageTimestamp?: string;
+type Request = {
+  requestID: number;
+  message: string;
+  requester?: string;
+  recipient?: string;
+  origin?: string;
+  destination?: string;
 };
 
 export default function Inbox() {
   const db = useSQLiteContext();
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<"received" | "sent">("received");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadMessages = async () => {
-    if (!user) return;
+
     setIsLoading(true);
 
     try {
       let query = "";
       if (viewMode === "received") {
         query = `
-          SELECT r.requestID AS messageID,
-                 r.message AS messageBody,
-                 u.firstName || ' ' || u.lastName AS messageSender
+          SELECT r.*,
+                j.*,
+                u.firstName AS requester
           FROM requests r
+          JOIN journeys j ON r.journeyID = j.journeyID
           JOIN users u ON r.requesterID = u.userID
           WHERE r.recipientID = ?
           ORDER BY r.requestID DESC
         `;
       } else {
         query = `
-          SELECT r.requestID AS messageID,
-                 r.message AS messageBody,
-                 u.firstName || ' ' || u.lastName AS messageRecipient
+          SELECT r.*,
+                 j.*,
+                 u.firstName AS recipient
           FROM requests r
+          JOIN journeys j ON r.journeyID = j.journeyID
           JOIN users u ON r.recipientID = u.userID
           WHERE r.requesterID = ?
           ORDER BY r.requestID DESC
         `;
       }
 
-      const results = await db.getAllAsync<Message>(query, [user.userID]);
+      const results = await db.getAllAsync<Request>(query, [user!.userID]);
       setMessages(results);
     } catch (error) {
       console.error("Failed to load messages", error);
@@ -70,37 +73,43 @@ export default function Inbox() {
 
   return (
     <View style={styles.container}>
-      {/* Toggle */}
+
+      {/* Toggle between recieved and sent rquests*/}
       <View style={styles.toggleContainer}>
+
         <Pressable
           style={[styles.toggleButton, viewMode === "received" && styles.toggleButtonActive]}
           onPress={() => setViewMode("received")}
         >
           <Text style={[styles.toggleText, viewMode === "received" && styles.toggleTextActive]}>Received</Text>
+
         </Pressable>
 
         <Pressable
           style={[styles.toggleButton, viewMode === "sent" && styles.toggleButtonActive]}
           onPress={() => setViewMode("sent")}
         >
+
           <Text style={[styles.toggleText, viewMode === "sent" && styles.toggleTextActive]}>Sent</Text>
+
         </Pressable>
       </View>
 
       <FlatList
         style={styles.messageDisplay}
         data={messages}
-        keyExtractor={(item) => item.messageID.toString()}
+        keyExtractor={(item) => item.requestID.toString()}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.message, pressed && { backgroundColor: "rgba(133, 221, 255, .5)" }]}
           >
             <Text style={styles.messageHeader}>
-              {viewMode === "received" ? item.messageSender : item.messageRecipient}
+              {viewMode === "received" ? item.requester : item.recipient}
             </Text>
-            <Text style={styles.messageBody}>{item.messageBody}</Text>
-            <Text style={styles.messageTime}>{item.messageTimestamp}</Text>
+            <Text>Origin: {item.origin}</Text>
+            <Text>Destination: {item.destination}</Text>
+            <Text style={styles.messageBody}>Message: {item.message}</Text>
           </Pressable>
         )}
         ListEmptyComponent={<Text>No messages found.</Text>}
@@ -110,8 +119,22 @@ export default function Inbox() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", marginTop: 10 },
-  messageDisplay: { width: 350, marginBottom: 180 },
+
+  container: {
+
+    flex: 1,
+    alignItems: "center",
+    marginTop: 10
+  
+  },
+
+  messageDisplay: {
+    
+    width: 350,
+    marginBottom: 40
+  
+  },
+
   messageTime: { color: "gray", fontSize: 12, textAlign: "right" },
   messageHeader: { fontSize: 16, fontWeight: "bold" },
   messageBody: { marginTop: 10, marginBottom: 10, textAlign: "justify" },
@@ -121,4 +144,5 @@ const styles = StyleSheet.create({
   toggleButtonActive: { backgroundColor: "rgba(11, 161, 226, 1)" },
   toggleText: { color: "rgba(11, 161, 226, 1)", fontWeight: "600" },
   toggleTextActive: { color: "white" },
+
 });
