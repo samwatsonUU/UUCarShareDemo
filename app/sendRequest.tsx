@@ -132,13 +132,6 @@ export default function sendRequest() {
                     // INSERT into journey_requests table
 
 
-
-
-
-
-
-
-
                     await db.runAsync(
 
                         'INSERT INTO requests (requesterID, recipientID, journeyID, message, status) VALUES (?, ?, ?, ?, "Pending")',

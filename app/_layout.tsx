@@ -111,6 +111,7 @@ export default function RootLayout() {
             <Stack.Screen name="editJourney" options={{ headerShown: true, title: 'Edit Journey' }} />
             <Stack.Screen name="findMatches" options={{ headerShown: true, title: 'Matches'  }} />
             <Stack.Screen name="sendRequest" options={{ headerShown: true, title: 'Send a Request'  }} />
+            <Stack.Screen name="requestResponse" options={{ headerShown: true, title: 'Respond to a Request'  }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
