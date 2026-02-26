@@ -196,7 +196,7 @@ if (result2) {
                     style={styles.messageInput}
                     value={message}
                     onChangeText={setMessage}
-                    placeholder="e.g. Hi, I can/cannot carpool with yo!."
+                    placeholder="e.g. Hi, I can/cannot carpool with you!"
                     multiline
                     maxLength={150}
                     textAlignVertical="top"

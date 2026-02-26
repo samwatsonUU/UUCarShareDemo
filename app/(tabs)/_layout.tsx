@@ -19,7 +19,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="myJourneys"
         options={{
-          title: 'My Journeys',
+          title: 'Journeys',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
@@ -33,7 +33,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: 'My Inbox',
+          title: 'Requests',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="message.fill" color={color} />,
         }}
       />

@@ -10,12 +10,10 @@ import { Picker } from '@react-native-picker/picker';
 
 type UserForm = {
   email: string,
-  password: string,
   firstName: string,
   lastName: string,
   gender: string,
   role: string,
-  bio: string,
   canDrive: boolean,
   prefersSameGender: boolean,
   smokingAllowed: boolean
@@ -34,12 +32,10 @@ export default function Profile() {
 
   const [form, setForm] = useState<UserForm>({
     email: '',
-    password: '',
     firstName: '',
     lastName: '',
     gender: '',
     role: '',
-    bio: '',
     canDrive: false,
     prefersSameGender: false,
     smokingAllowed: false
@@ -60,12 +56,10 @@ export default function Profile() {
         const u = results[0];
         const userForm: UserForm = {
           email: u.email ?? '',
-          password: u.password ?? '',
           firstName: u.firstName ?? '',
           lastName: u.lastName ?? '',
           gender: u.gender ?? '',
           role: u.role ?? '',
-          bio: u.bio ?? '',
           canDrive: u.canDrive === 1,
           prefersSameGender: u.prefersSameGender === 1,
           smokingAllowed: u.smokingAllowed === 1
@@ -94,24 +88,20 @@ useFocusEffect(
   /** --- Save changes --- */
   const saveChanges = async () => {
     try {
-      if (!form.email || !form.password || !form.firstName || !form.lastName || !form.gender || !form.role) {
+      if (!form.email || !form.firstName || !form.lastName || !form.gender || !form.role) {
         throw new Error('No fields can be empty.');
       } else if (!validEmail(form.email)) {
         throw new Error("Email must end with @ulster.ac.uk");
-      } else if (!validPassword(form.password)) {
-        throw new Error("Password must be 8+ chars, 1 uppercase, 1 number, 1 special char");
-      }
+      } 
 
       await db.runAsync(
-        'UPDATE users SET email = ?, password = ?, firstName = ?, lastName = ?, gender = ?, role = ?, bio = ?, canDrive = ?, prefersSameGender = ?, smokingAllowed = ? WHERE userID = ?',
+        'UPDATE users SET email = ?, firstName = ?, lastName = ?, gender = ?, role = ?, canDrive = ?, prefersSameGender = ?, smokingAllowed = ? WHERE userID = ?',
         [
           form.email,
-          form.password,
           form.firstName,
           form.lastName,
           form.gender,
           form.role,
-          form.bio,
           form.canDrive ? 1 : 0,
           form.prefersSameGender ? 1 : 0,
           form.smokingAllowed ? 1 : 0,
@@ -143,12 +133,6 @@ useFocusEffect(
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>
           <TextInput style={styles.input} value={form.email} onChangeText={text => setForm({...form, email: text})} />
-        </View>
-
-        {/** Password */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput style={styles.input} value={form.password} secureTextEntry onChangeText={text => setForm({...form, password: text})} />
         </View>
 
         {/** First Name */}
@@ -200,12 +184,6 @@ useFocusEffect(
 
             </Picker>
           </View>
-        </View>
-
-        {/** Bio */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Bio</Text>
-          <TextInput style={[styles.input, { height: 80 }]} multiline value={form.bio} onChangeText={text => setForm({...form, bio: text})} />
         </View>
 
         {/** Can Drive */}

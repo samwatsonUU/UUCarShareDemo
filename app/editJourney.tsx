@@ -35,7 +35,6 @@ export default function editJourney() {
     departingAt: null as Date | null,
     mustArriveAt: null as Date | null,
     date: null as Date | null,
-    status: ''
 
   })
 
@@ -48,8 +47,7 @@ export default function editJourney() {
         !form.destination ||
         !form.departingAt ||
         !form.mustArriveAt ||
-        !form.date ||
-        !form.status
+        !form.date
       ) {
         throw new Error("No fields can be empty.");
       }
@@ -79,7 +77,6 @@ export default function editJourney() {
             departingAt = ?, 
             mustArriveAt = ?, 
             date = ?, 
-            status = ?
         WHERE journeyID = ?`,
         [
           form.origin,
@@ -91,7 +88,6 @@ export default function editJourney() {
           formattedDepartingAt,
           formattedMustArriveAt,
           formattedDate,
-          form.status,
           journeyID
         ]
       );
@@ -185,8 +181,6 @@ export default function editJourney() {
                     departingAt: departingDate,
                     mustArriveAt: arrivingDate,
                     date: dateObj,
-
-                    status: result.status ?? ''
                   });
                 }
 
@@ -210,8 +204,6 @@ export default function editJourney() {
         }}
       >
           <View style={styles.container}>
-
-            <Text style={styles.title}>Edit a Journey</Text>
 
             <View style={styles.form}>
                     
@@ -434,21 +426,7 @@ export default function editJourney() {
 
 
 
-              <View style={styles.inputGroup}>
 
-                  <Text style={styles.label}>Status</Text>
-
-                  <View style={styles.inputWrapper}>
-
-                  <TextInput
-                  style={styles.input}
-                  value={form.status}
-                  onChangeText={(text) => setForm({ ...form, status: text })}
-                  />
-
-                  </View>
-
-              </View>
 
             </View>
 

@@ -61,7 +61,6 @@ export default function AddJourney() {
             departingAt: form.departingAt,
             mustArriveAt: form.mustArriveAt,
             date: form.date,
-            status: 'test'
             });
 
             const formattedDate = form.date.toLocaleDateString("en-GB");
@@ -70,11 +69,12 @@ export default function AddJourney() {
 
             const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
 
+            const journeyType = user!.canDrive === 1 ? "driver" : "passenger";
 
             // insert data into the database
             await db.runAsync(
 
-              'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "Pending")',
+              'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, journeyType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [
                 user!.userID,
                 form.origin,
@@ -85,7 +85,8 @@ export default function AddJourney() {
                 form.destinationLongitude,
                 formattedDepartingAt,
                 formattedMustArriveAt,
-                formattedDate
+                formattedDate,
+                journeyType
               ]
 
             );

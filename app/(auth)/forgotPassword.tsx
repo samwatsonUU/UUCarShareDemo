@@ -48,8 +48,6 @@ export default function forgotPassword() {
     return(
 
     <View style={styles.container}>
-
-        <Text style={styles.title}>Forgot Password</Text>
       
         <ScrollView style={styles.form}>
     
@@ -75,15 +73,6 @@ export default function forgotPassword() {
         )}
         </Pressable>
 
-        <Pressable
-        style={({ pressed }) => [styles.backButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-        onPress={ () => router.replace("/(auth)/login")}
-        >  
-        {({ pressed }) => (
-        <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to Login</Text>
-        )}
-        </Pressable>
-
     </View>
 
     )
@@ -96,7 +85,7 @@ const styles = StyleSheet.create({
   container: {
 
     alignItems: "center",
-    marginTop: 40
+    marginTop: "60%",
 
   },
 
@@ -117,11 +106,9 @@ const styles = StyleSheet.create({
 
   form: {
 
-    backgroundColor: "white",
     borderRadius: 10,
     width: 300,
-    marginTop: 20,
-    marginBottom: 20,
+    marginBottom: 0,
     padding: 15,
 
   },
@@ -138,6 +125,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "gray",
     margin: 5,
+    backgroundColor: "white",
  
   },
 

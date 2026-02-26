@@ -24,19 +24,30 @@ export default function MyJourneys() {
 
 
   const [Journeys, setJourneys] = useState<Journey[]>([]);
+  const [viewMode, setViewMode] = useState<"myJourneys" | "joined">("myJourneys");
   const [isLoading, setIsLoading] = useState(false);
   const db = useSQLiteContext();
   const { user } = useAuth();
 
   const loadUsers = async () => {
 
+    setIsLoading(true);
+
       try {
 
-          setIsLoading(true);
+        let query = "";
+        if (viewMode === "myJourneys") {
+          query = "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]         
 
-          const results = await db.getAllAsync<Journey>(
-            "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]
-          );
+        } else {
+
+          // pull journeys where the user has sent a request, and it has been approved
+          // query = "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]
+          query = "SELECT r.*, j.* FROM requests r JOIN journeys j on r.journeyID = j.journeyID WHERE r.requesterID = ? AND r.status = ?"
+
+        }
+
+        const results = await db.getAllAsync<Journey>(query, [user!.userID, "Approved"]);
 
           setJourneys(results)
 
@@ -81,6 +92,27 @@ export default function MyJourneys() {
 
     <View style={styles.container}>
 
+    {/* Toggle between recieved and sent rquests*/}
+    <View style={styles.toggleContainer}>
+
+      <Pressable
+        style={[styles.toggleButton, viewMode === "myJourneys" && styles.toggleButtonActive]}
+        onPress={() => setViewMode("myJourneys")}
+      >
+        <Text style={[styles.toggleText, viewMode === "myJourneys" && styles.toggleTextActive]}>My Journeys</Text>
+
+      </Pressable>
+
+      <Pressable
+        style={[styles.toggleButton, viewMode === "joined" && styles.toggleButtonActive]}
+        onPress={() => setViewMode("joined")}
+      >
+
+        <Text style={[styles.toggleText, viewMode === "joined" && styles.toggleTextActive]}>Joined Journeys</Text>
+
+      </Pressable>
+    </View>
+
       <FlatList
             style={styles.list}
             data={Journeys}
@@ -89,10 +121,14 @@ export default function MyJourneys() {
                 <RefreshControl refreshing={isLoading} onRefresh={loadUsers} tintColor="#007AFF" />
             }
             keyExtractor={(item) => item.journeyID.toString()}
-            renderItem={({ item }) => (
+            renderItem={({ item }) =>
+              
+              // if the user is currently viewing their own added journeys
+              
+              viewMode === "myJourneys" ? (
+
                 <View style={styles.journeyContainer}>
-                    {/* <Text>{item.journeyID}</Text> */}
-                    {/* <Text>{item.userID}</Text> */}
+
                     <Text>Origin: {item.origin}</Text>
                     <Text>Destination: {item.destination}</Text>
                     <Text>Departing At: {item.departingAt}</Text>
@@ -130,6 +166,16 @@ export default function MyJourneys() {
                     </Pressable>
 
                 </View>
+
+              // else, if the user is currently viewing journeys that they have requested participation in and have been approved for
+              ) : (
+
+
+              <Text>AHAHAHA</Text>
+
+
+
+
             )}
             ListEmptyComponent={<Text>You haven't added any journeys yet, go to "Add A Journey" to start carpooling!</Text>}
         />
@@ -199,6 +245,15 @@ const styles = StyleSheet.create({
 
     color: "rgba(11, 161, 226, 1)",
 
-  }
+  },
+
+
+
+  toggleContainer: { flexDirection: "row", marginTop: 15, marginBottom: 10, backgroundColor: "#E6F4FA", borderRadius: 25, padding: 4 },
+  toggleButton: { paddingVertical: 8, paddingHorizontal: 24, borderRadius: 20 },
+  toggleButtonActive: { backgroundColor: "rgba(11, 161, 226, 1)" },
+  toggleText: { color: "rgba(11, 161, 226, 1)", fontWeight: "600" },
+  toggleTextActive: { color: "white" },
+
 
 })

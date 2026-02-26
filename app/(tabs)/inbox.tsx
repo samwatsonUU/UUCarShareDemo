@@ -15,6 +15,7 @@ type Request = {
   date: string;
   departingAt: string;
   mustArriveAt: string;
+  status: string;
 
 };
 
@@ -25,37 +26,37 @@ export default function Inbox() {
   const [messages, setMessages] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const cancelRequest = async (requestID: number) => {
+  // const cancelRequest = async (requestID: number) => {
 
-    Alert.alert(
-      "Confirm Cancellation",
-      "Are you sure you want to cancel this request?",
-      [
-        {
-          text: "No",
-          style: "cancel",
-        },
-        {
-          text: "Yes",
-          style: "destructive",
-          onPress: async () => {
-            await db.runAsync(
-              "DELETE FROM requests WHERE requestID = ?",
-              [requestID]
-            );
+  //   Alert.alert(
+  //     "Confirm Cancellation",
+  //     "Are you sure you want to cancel this request?",
+  //     [
+  //       {
+  //         text: "No",
+  //         style: "cancel",
+  //       },
+  //       {
+  //         text: "Yes",
+  //         style: "destructive",
+  //         onPress: async () => {
+  //           await db.runAsync(
+  //             "DELETE FROM requests WHERE requestID = ?",
+  //             [requestID]
+  //           );
 
-          setMessages(prev =>
-            prev.filter(item => item.requestID !== requestID)
-          );
+  //         setMessages(prev =>
+  //           prev.filter(item => item.requestID !== requestID)
+  //         );
 
-          Alert.alert("Success", "Request cancelled");
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+  //         Alert.alert("Success", "Request cancelled");
+  //         },
+  //       },
+  //     ],
+  //     { cancelable: true }
+  //   );
 
-  }
+  // }
 
   const loadMessages = async () => {
 
@@ -72,6 +73,7 @@ export default function Inbox() {
           JOIN journeys j ON r.journeyID = j.journeyID
           JOIN users u ON r.requesterID = u.userID
           WHERE r.recipientID = ?
+          AND r.status = ?
           ORDER BY r.requestID DESC
         `;
       } else {
@@ -87,7 +89,7 @@ export default function Inbox() {
         `;
       }
 
-      const results = await db.getAllAsync<Request>(query, [user!.userID]);
+      const results = await db.getAllAsync<Request>(query, [user!.userID, "Pending"]);
       setMessages(results);
     } catch (error) {
       console.error("Failed to load messages", error);
@@ -153,31 +155,25 @@ export default function Inbox() {
               
             >
               <Text style={styles.messageHeader}>{item.requester}</Text>
+              <Text>Date: {item.date}</Text>
               <Text>Origin: {item.origin}</Text>
               <Text>Destination: {item.destination}</Text>
-              <Text>Date: {item.date}</Text>
-              <Text>Departing At: {item.date}</Text>
-              <Text>Must Arrive At: {item.date}</Text>
               <Text style={styles.messageBody}>Message: {item.message}</Text>
             </Pressable>
-
-
-
-
-
-
-
 
           // else, if they are viewing requests sent to other users
           ) : (
 
           <View style={styles.message}>
             <Text style={styles.messageHeader}>{item.recipient}</Text>
+            <Text>Date: {item.date}</Text>
             <Text>Origin: {item.origin}</Text>
             <Text>Destination: {item.destination}</Text>
+            <Text>Status: {item.status}</Text>
             <Text style={styles.messageBody}>Message: {item.message}</Text>
 
-            <Pressable
+
+            {/* <Pressable
               style={({ pressed }) => [styles.cancelButton, pressed && { backgroundColor: "rgb(237, 14, 14)"}]}
       
               onPress={() => cancelRequest(item.requestID)}
@@ -186,15 +182,22 @@ export default function Inbox() {
               {({ pressed }) => (
               <Text style={[styles.cancelButtonText, pressed && { color: "white" }]}>Cancel Request</Text>
               )}
-            </Pressable>
+            </Pressable> */}
 
+            {/* New pressable to take user to review page
+            
+                However, before taking them there, check the date - if they are trying to leave a review for a journey that has yet to take place, make an alert
 
+                Else, let them proceed
 
+                Pressing "Review" again should let them view their review, and they can change it if need be
+            
+            */}
 
           </View>
 
         )}
-        ListEmptyComponent={<Text>No messages found.</Text>}
+        ListEmptyComponent={<Text>Nothing here for now!</Text>}
       />
     </View>
   );
@@ -218,8 +221,8 @@ const styles = StyleSheet.create({
   },
 
   messageTime: { color: "gray", fontSize: 12, textAlign: "right" },
-  messageHeader: { fontSize: 16, fontWeight: "bold" },
-  messageBody: { marginTop: 10, marginBottom: 10, textAlign: "justify" },
+  messageHeader: { fontSize: 16, fontWeight: "bold", marginBottom: 10, },
+  messageBody: { marginTop: 10, marginBottom: 10, textAlign: "justify"},
   message: { backgroundColor: "white", marginTop: 20, padding: 10, borderRadius: 10 },
   toggleContainer: { flexDirection: "row", marginTop: 15, marginBottom: 10, backgroundColor: "#E6F4FA", borderRadius: 25, padding: 4 },
   toggleButton: { paddingVertical: 8, paddingHorizontal: 24, borderRadius: 20 },

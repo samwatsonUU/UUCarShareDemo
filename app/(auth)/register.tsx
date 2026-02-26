@@ -16,7 +16,6 @@ export default function register() {
         lastName: '',
         gender: '',
         role: '',
-        bio: '',
         canDrive: false,
         prefersSameGender: false,
         smokingAllowed: false
@@ -57,7 +56,7 @@ export default function register() {
       try {
 
             // ensure no inputs are empty
-            if(!form.email || !form.password || !form.confirmPassword || !form.firstName || !form.lastName || !form.gender || !form.role || !form.bio) {
+            if(!form.email || !form.password || !form.confirmPassword || !form.firstName || !form.lastName || !form.gender || !form.role ) {
 
               throw new Error('All fields are required');
                 
@@ -82,8 +81,8 @@ export default function register() {
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO users (email, password, firstName, lastName, gender, role, bio, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.bio, form.canDrive, form.prefersSameGender, form.smokingAllowed]
+                'INSERT INTO users (email, password, firstName, lastName, gender, role, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.canDrive, form.prefersSameGender, form.smokingAllowed]
 
             );
 
@@ -104,7 +103,6 @@ export default function register() {
               lastName: '',
               gender: '',
               role: '',
-              bio: '',
               canDrive: false,
               prefersSameGender: false,
               smokingAllowed: false,
@@ -221,13 +219,6 @@ export default function register() {
           </Picker>
 
         </View>
-
-        <TextInput
-        style={styles.input}
-        placeholder="Bio"
-        value={form.bio}
-        onChangeText={(text) => setForm({ ...form, bio: text })}
-        />
 
         <View style={styles.switchRow}>
           <Text>Can Drive</Text>

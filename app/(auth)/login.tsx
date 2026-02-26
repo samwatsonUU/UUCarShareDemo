@@ -178,7 +178,7 @@ export default function login() {
 
       <Pressable
 
-        onPress={ () => router.replace("/(auth)/forgotPassword")}
+        onPress={() => router.push("/(auth)/forgotPassword")}
 
       >  
 

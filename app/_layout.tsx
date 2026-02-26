@@ -58,7 +58,7 @@ export default function RootLayout() {
               departingAt TEXT NOT NULL,
               mustArriveAt TEXT NOT NULL,
               date TEXT NOT NULL,
-              status TEXT NOT NULL
+              journeyType TEXT NOT NULL
               
             );
 

@@ -19,6 +19,7 @@ type Journey = {
   mustArriveAt: string;
   date: string;
   status: string;
+  journeyType: string;
 };
 
 type JourneyWithUserAndDistance = Journey & {
@@ -92,7 +93,6 @@ export default function FindMatches() {
 
         const TIME_WINDOW_MINUTES = 30;
 
-        console.log("Executing match query WITHOUT acos");
         // Get matching journeys
        const results = await db.getAllAsync<Journey & { firstName: string }>(
         `
@@ -105,13 +105,11 @@ export default function FindMatches() {
           j.userID != ?
           AND j.date = ?
 
-          AND u.canDrive = 1
+          AND j.journeyType = ?
 
-          -- Smoking must match exactly
           AND u.smokingAllowed = ?
-
-          -- Gender preference must match exactly
           AND u.prefersSameGender = ?
+          AND u.role = ?
 
           -- If both require same gender, genders must match
           AND (
@@ -150,11 +148,16 @@ export default function FindMatches() {
           user!.userID,
           selectedJourney.date,
 
+          "driver",
+
           // Smoking exact match
           user!.smokingAllowed,
 
           // prefersSameGender exact match
           user!.prefersSameGender,
+
+          // Role exact match
+          user!.role,
 
           // gender enforcement if prefersSameGender = 1
           user!.prefersSameGender,
