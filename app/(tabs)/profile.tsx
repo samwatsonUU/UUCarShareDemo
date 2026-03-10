@@ -7,6 +7,7 @@ import { Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { AuthUser } from "@/context/AuthContext";
 import { Picker } from '@react-native-picker/picker';  
+import { getUserReviewScore } from "@/services/reviewService";
 
 type UserForm = {
   email: string,
@@ -23,7 +24,6 @@ export default function Profile() {
 
   const db = useSQLiteContext();
   const { user, login, logout } = useAuth();
-  const navigation = useNavigation();
   const [rating, setRating] = useState<number>(0);
 
   const logoutUser = () => {
@@ -45,41 +45,15 @@ export default function Profile() {
   const [initialForm, setInitialForm] = useState<UserForm | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-
-  // ----- Unit test ---- //
-
-  const reviewScore = async (userID: number) => {
-
-    try {
-
-      const result = await db.getFirstAsync<{ total: number, count: number }>(
-        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
-      );
-
-      if (!result || result.count === 0) return 0;
-
-      const average = Number((result.total / result.count).toFixed(1));
-
-      return average;
-
-    } catch (err) {
-
-      console.error("Review score error", err);
-
-    }
-
-  }
-
   const loadRating = async () => {
 
     if (!user?.userID) return;
 
-    const score = await reviewScore(user.userID);
+    const score = await getUserReviewScore(db, user.userID);
 
     setRating(score ?? 0);
 
   };
-
 
   /** --- Load user from DB --- */
   const loadUser = async () => {

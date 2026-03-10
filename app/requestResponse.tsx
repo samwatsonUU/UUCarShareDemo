@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
+import { approveRequest, denyRequest } from "@/services/requestService";
 
 type Request = {
 
@@ -18,7 +19,7 @@ type Request = {
 
 }
 
-export default function () {
+export default function RequestResponse() {
 
     const { requestID } = useLocalSearchParams<{ requestID: string }>();
     const numericRequestID = Number(requestID);
@@ -27,30 +28,26 @@ export default function () {
     const [message, setMessage] = useState("");
 
     const approve = async () => {
-
-        await db.runAsync(
-
-            `UPDATE requests SET status = ? WHERE requestID = ?`, ["Approved", numericRequestID]
-
-        ); 
-
-        Alert.alert("Success", "Request approved!");
-        router.replace("/(tabs)/inbox");
-
-    }
+        try {
+            await approveRequest(db, numericRequestID);
+            Alert.alert("Success", "Request approved!");
+            router.replace("/(tabs)/inbox");
+        } catch (error) {
+            console.error("Approve request error", error);
+            Alert.alert("Error", "Could not approve the request.");
+        }
+    };
 
     const deny = async () => {
-
-        await db.runAsync(
-
-            `UPDATE requests SET status = ? WHERE requestID = ?`, ["Denied", numericRequestID]
-
-        ); 
-
-        Alert.alert("Success", "Request has been denied!");
-        router.replace("/(tabs)/inbox");
-
-    }
+        try {
+            await denyRequest(db, numericRequestID);
+            Alert.alert("Success", "Request has been denied!");
+            router.replace("/(tabs)/inbox");
+        } catch (error) {
+            console.error("Deny request error", error);
+            Alert.alert("Error", "Could not deny the request.");
+        }
+    };
 
     useEffect(() => {
 
@@ -61,9 +58,8 @@ export default function () {
                     // Selected request
                     const selectedRequest = await db.getFirstAsync<Request>(
     
-                    " SELECT r.*, j.*, u.firstName FROM requests r JOIN journeys j ON r.journeyID = j.journeyID JOIN users u ON r.requesterID = u.userID WHERE requestID = ?",
-    
-                    [requestID]
+                    "SELECT r.*, j.*, u.firstName FROM requests r JOIN journeys j ON r.journeyID = j.journeyID JOIN users u ON r.requesterID = u.userID WHERE r.requestID = ?",
+                    [numericRequestID]
                     );
                 
         
@@ -103,12 +99,13 @@ export default function () {
                     <Text>Departing At: {request.departingAt}</Text>
                     <Text>Must Arrive At: {request.mustArriveAt}</Text>
                     <Text>Date: {request.date}</Text>
+                    <Text>Request Message: {request.message}</Text>
                 </View>
             )}
 
             <View style={styles.messageContainer}>
                 <Text style={styles.messageLabel}>
-                    Message to requester:
+                    Optional response message:
                 </Text>
 
                 <TextInput
@@ -143,12 +140,11 @@ export default function () {
 }
 
 const styles = StyleSheet.create({
-
     container: {
         flex: 1,
         alignItems: "center",
     },
-    
+
     subtitle: {
         fontSize: 16,
         marginTop: 10,
@@ -188,6 +184,16 @@ const styles = StyleSheet.create({
         color: "rgba(0,0,0,0.6)",
     },
 
+    approveButton: {
+        alignItems: "center",
+        alignSelf: "center",
+        backgroundColor: "rgba(24, 201, 24, 0.55)",
+        width: 180,
+        borderRadius: 5,
+        padding: 10,
+        marginBottom: 20,
+    },
+
     denyButton: {
         alignItems: "center",
         alignSelf: "center",
@@ -201,14 +207,4 @@ const styles = StyleSheet.create({
     buttonText: {
         color: "rgb(0, 0, 0)",
     },
-
-    approveButton: {
-        alignItems: "center",
-        alignSelf: "center",
-        backgroundColor: "rgba(24, 201, 24, 0.55)",
-        width: 180,
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 20,
-    },
-})
+});

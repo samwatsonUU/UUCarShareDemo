@@ -7,9 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { router } from "expo-router";
-
+import { hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
+import { hasJourneyOccurred } from "@/utils/journeyUtils";
+import { cancelRequest } from "@/services/requestService";
 
 type ownedJourney = {
+
   journeyID: number;
   userID: string;
   origin: string;
@@ -18,6 +21,7 @@ type ownedJourney = {
   mustArriveAt: string;
   date: string;
   status: string;
+
 };
 
 type joinedJourney = ownedJourney & {
@@ -28,66 +32,36 @@ type joinedJourney = ownedJourney & {
   message: string,
   firstName: string,
 
-
-}
-
-type journeyDateTimeInfo = {
-
-  date: string,
-  departingAt: string,
-
 }
 
 export default function MyJourneys() {
 
+  const db = useSQLiteContext();
+  const { user } = useAuth();
 
   const [Journeys, setJourneys] = useState<(ownedJourney | joinedJourney)[]>([]);
   const [viewMode, setViewMode] = useState<"myJourneys" | "joined">("myJourneys");
   const [isLoading, setIsLoading] = useState(false);
-  const db = useSQLiteContext();
-  const { user } = useAuth();
 
   const review = async (journeyID: number, revieweeID: number) => {
+    if (!user?.userID) return;
 
-    const alreadyReviewed = await db.getAllAsync (
-
-      "SELECT * FROM reviews WHERE journeyID = ? AND reviewerID = ?", [journeyID, user!.userID]
-
-    )
-
-    if(alreadyReviewed.length > 0) {
-
-      Alert.alert("Error", "You have already reviewed this driver for this journey.");
-      return;
-
-    }
-
-    const result = await db.getFirstAsync<journeyDateTimeInfo>(
-      "SELECT date, departingAt FROM journeys WHERE journeyID = ?",
-      [journeyID]
+    const alreadyReviewed = await hasUserReviewedJourney(
+      db,
+      journeyID,
+      user.userID
     );
 
-    if (!result) return;
+    if (alreadyReviewed) {
+      Alert.alert("Error", "You have already reviewed this driver for this journey.");
+      return;
+    }
 
-    const now = new Date();
-    // CA (Canadian) format used (YYYY-MM-DD)
-    const today = now.toLocaleDateString("en-CA");
+    const journeyInfo = await getJourneyDateTime(db, journeyID);
 
-    // convert DB date DD/MM/YYYY -> YYYY-MM-DD
-    const [day, month, year] = result.date.split("/");
-    const dbDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    if (!journeyInfo) return;
 
-    // convert times to minutes
-    const [journeyHour, journeyMinute] = result.departingAt.split(":").map(Number);
-    const journeyMinutes = journeyHour * 60 + journeyMinute;
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    console.log("DB date:", dbDate);
-    console.log("Today:", today);
-    console.log("Journey minutes:", journeyMinutes);
-    console.log("Current minutes:", currentMinutes);
-
-    if (dbDate > today || (dbDate === today && journeyMinutes > currentMinutes)) {
+    if (!hasJourneyOccurred(journeyInfo.date, journeyInfo.departingAt)) {
       Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
       return;
     }
@@ -99,37 +73,36 @@ export default function MyJourneys() {
         revieweeID: revieweeID.toString(),
       },
     });
-
   };
 
   const cancelParticipation = (requestID: number) => {
-  
-        Alert.alert(
-          "Confirm Cancellation",
-          "Are you sure you want to stop participating in this journey?",
-          [
-            {
-              text: "No",
-              style: "cancel",
-            },
-            {
-              text: "Yes",
-              style: "destructive",
-              onPress: async () => {
-                await db.runAsync(
-                  "DELETE FROM requests WHERE requestID = ?",
-                  [requestID]
-                );
-  
-                Alert.alert("Success", "Journey cancelled");
-                loadJourneys();
-              },
-            },
-          ],
-          { cancelable: true }
-        );
-        
-      };
+    Alert.alert(
+      "Confirm Cancellation",
+      "Are you sure you want to stop participating in this journey?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelRequest(db, requestID);
+
+              Alert.alert("Success", "Journey cancelled");
+              loadJourneys();
+            } catch (error) {
+              console.error("Cancel request error", error);
+              Alert.alert("Error", "Could not cancel participation.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   
   const loadJourneys = async () => {
@@ -354,40 +327,30 @@ export default function MyJourneys() {
 }
 
 const styles = StyleSheet.create({
-
   container: {
-
     flex: 1,
     alignItems: "center",
-
   },
 
   title: {
-
     fontSize: 24,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
-
   },
 
   list: {
-
     width: 320,
     marginTop: 20,
-
   },
 
   journeyContainer: {
-
     marginBottom: 20,
     padding: 20,
     backgroundColor: "rgb(255, 255, 255)",
     borderRadius: 15,
-
   },
 
   findMatchesButton: {
-
     marginTop: 10,
     alignItems: "center",
     alignSelf: "center",
@@ -395,11 +358,9 @@ const styles = StyleSheet.create({
     width: 140,
     borderRadius: 5,
     padding: 10,
-    
   },
 
   secondaryButton: {
-
     marginTop: 10,
     alignItems: "center",
     alignSelf: "center",
@@ -407,20 +368,37 @@ const styles = StyleSheet.create({
     width: 140,
     borderRadius: 5,
     padding: 10,
-    
   },
 
   buttonText: {
-
     color: "rgba(11, 161, 226, 1)",
-
   },
 
-  toggleContainer: { flexDirection: "row", marginTop: 15, marginBottom: 10, backgroundColor: "#E6F4FA", borderRadius: 25, padding: 4 },
-  toggleButton: { paddingVertical: 8, paddingHorizontal: 24, borderRadius: 20 },
-  toggleButtonActive: { backgroundColor: "rgba(11, 161, 226, 1)" },
-  toggleText: { color: "rgba(11, 161, 226, 1)", fontWeight: "600" },
-  toggleTextActive: { color: "white" },
+  toggleContainer: {
+    flexDirection: "row",
+    marginTop: 15,
+    marginBottom: 10,
+    backgroundColor: "#E6F4FA",
+    borderRadius: 25,
+    padding: 4,
+  },
 
+  toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
 
-})
+  toggleButtonActive: {
+    backgroundColor: "rgba(11, 161, 226, 1)",
+  },
+
+  toggleText: {
+    color: "rgba(11, 161, 226, 1)",
+    fontWeight: "600",
+  },
+
+  toggleTextActive: {
+    color: "white",
+  },
+});

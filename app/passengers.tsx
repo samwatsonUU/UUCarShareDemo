@@ -4,20 +4,14 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { getUserReviewScore, hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
+import { hasJourneyOccurred } from "@/utils/journeyUtils";
 
 type user = {
-
-    userID: number,
-    firstName: string,
-    lastName: string,
-
-}
-
-type journeyDateTimeInfo = {
-
-  date: string,
-  departingAt: string,
-
+  userID: number,
+  firstName: string,
+  lastName: string,
+  reviewScore: number,
 }
 
 export default function passengers() {
@@ -28,18 +22,27 @@ export default function passengers() {
     const { user } = useAuth();
 
     const loadUsers = async () => {
-            
-        try {
+    try {
+        const result = await db.getAllAsync<Omit<user, "reviewScore">>(
+        "SELECT u.userID, u.firstName, u.lastName FROM requests r JOIN users u ON u.userID = r.requesterID WHERE r.journeyID = ?",
+        [journeyID]
+        );
 
-            const result = await db.getAllAsync<user>("SELECT u.userID, u.firstName, u.lastName FROM requests r JOIN users u ON u.userID = r.requesterID WHERE r.journeyID = ?", [journeyID]);
-            setUsers(result);
+        const usersWithScores: user[] = await Promise.all(
+        result.map(async (item) => {
+            const reviewScore = await getUserReviewScore(db, item.userID);
 
-        } catch (error) {
+            return {
+            ...item,
+            reviewScore,
+            };
+        })
+        );
 
-            console.error("Database error", error);
-
-        } 
-
+        setUsers(usersWithScores);
+    } catch (error) {
+        console.error("Database error", error);
+    }
     };
 
     useEffect(() => {
@@ -48,59 +51,37 @@ export default function passengers() {
 
     }, []);
 
-      const review = async (journeyID: number, revieweeID: number) => {
-    
-        const alreadyReviewed = await db.getAllAsync (
+    const review = async (journeyID: number, revieweeID: number) => {
+    if (!user?.userID) return;
 
-            "SELECT * FROM reviews WHERE journeyID = ? AND reviewerID = ?", [journeyID, user!.userID]
+    const alreadyReviewed = await hasUserReviewedJourney(
+        db,
+        journeyID,
+        user.userID
+    );
 
-        )
+    if (alreadyReviewed) {
+        Alert.alert("Error", "You have already reviewed this passenger for this journey.");
+        return;
+    }
 
-        if(alreadyReviewed.length > 0) {
+    const journeyInfo = await getJourneyDateTime(db, journeyID);
 
-            Alert.alert("Error", "You have already reviewed this passenger for this journey.");
-            return;
+    if (!journeyInfo) return;
 
-        }
+    if (!hasJourneyOccurred(journeyInfo.date, journeyInfo.departingAt)) {
+        Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
+        return;
+    }
 
-        const result = await db.getFirstAsync<journeyDateTimeInfo>(
-          "SELECT date, departingAt FROM journeys WHERE journeyID = ?",
-          [journeyID]
-        );
-    
-        if (!result) return;
-    
-        const now = new Date();
-        const today = now.toLocaleDateString("en-CA");
-    
-        // convert DB date DD/MM/YYYY -> YYYY-MM-DD
-        const [day, month, year] = result.date.split("/");
-        const dbDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-    
-        // convert times to minutes
-        const [journeyHour, journeyMinute] = result.departingAt.split(":").map(Number);
-        const journeyMinutes = journeyHour * 60 + journeyMinute;
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    
-        console.log("DB date:", dbDate);
-        console.log("Today:", today);
-        console.log("Journey minutes:", journeyMinutes);
-        console.log("Current minutes:", currentMinutes);
-    
-        if (dbDate > today || (dbDate === today && journeyMinutes > currentMinutes)) {
-          Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
-          return;
-        }
-    
-        router.push({
-          pathname: "/review",
-          params: {
-            journeyID: journeyID.toString(),
-            revieweeID: revieweeID.toString(),
-          },
-        });
-    
-      };
+    router.push({
+        pathname: "/review",
+        params: {
+        journeyID: journeyID.toString(),
+        revieweeID: revieweeID.toString(),
+        },
+    });
+    };
 
     return (
 
@@ -117,7 +98,7 @@ export default function passengers() {
                         <View>
                             <View style={styles.passengerContainer}>
 
-                                <Text style={styles.nameLabel}>{item.firstName} {item.lastName}</Text>
+                                <Text style={styles.nameLabel}>{item.firstName} {item.lastName} ⭐ {item.reviewScore.toFixed(1)}</Text>
                                 <Pressable 
                                 
                                 style={({ pressed }) => [
@@ -153,7 +134,7 @@ const styles = StyleSheet.create({
 
     list: {
 
-        width: 320,
+        width: 360,
         marginTop: 20,
 
     },
@@ -180,7 +161,7 @@ const styles = StyleSheet.create({
 
     nameLabel: {
 
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: "800",
 
     },

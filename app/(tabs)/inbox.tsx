@@ -4,6 +4,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from "expo-router";
+import { getUserReviewScore } from "@/services/reviewService";
 
 type Request = {
 
@@ -29,25 +30,6 @@ export default function Inbox() {
   const [messages, setMessages] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
-
-  const reviewScore = async (userID: number) => {
-    try {
-      const result = await db.getFirstAsync<{ total: number; count: number }>(
-        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`,
-        [userID]
-      );
-
-      if (!result || result.count === 0) return 0;
-
-      const average = Number((result.total / result.count).toFixed(1));
-
-      return average;
-
-    } catch (err) {
-      console.error("Review score error", err);
-      return 0;
-    }
-  };
 
   const loadMessages = async () => {
 
@@ -91,7 +73,7 @@ export default function Inbox() {
             ? msg.requesterID
             : msg.recipientID;
 
-        const score = await reviewScore(userID);
+        const score = await getUserReviewScore(db, userID);
         ratingMap[userID] = score ?? 0;
       }
 

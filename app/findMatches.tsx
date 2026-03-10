@@ -5,6 +5,7 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
+import { getUserReviewScore } from "@/services/reviewService";
 
 type Journey = {
   journeyID: number;
@@ -38,28 +39,6 @@ export default function FindMatches() {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const reviewScore = async (userID: number) => {
-
-    try {
-
-      const result = await db.getFirstAsync<{ total: number, count: number }>(
-        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
-      );
-
-      if (!result || result.count === 0) return 0;
-
-      const average = Number((result.total / result.count).toFixed(1));
-
-      return average;
-
-    } catch (err) {
-
-      console.error("Review score error", err);
-
-    }
-
-  }
 
   const haversineKm = (
 
@@ -241,7 +220,7 @@ export default function FindMatches() {
     const ratingMap: { [key: number]: number } = {};
 
     for (const match of enriched) {
-      const score = await reviewScore(match.userID);
+      const score = await getUserReviewScore(db, match.userID);
       ratingMap[match.userID] = score ?? 0;
     }
 

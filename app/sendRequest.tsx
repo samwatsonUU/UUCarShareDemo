@@ -4,6 +4,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
+import { createRequest } from "@/services/requestService";
 
 type Journey = {
 
@@ -28,7 +29,7 @@ type JourneyWithUser = Journey & {
 
 };
 
-export default function sendRequest() {
+export default function SendRequest() {
 
     const db = useSQLiteContext();
     const { user } = useAuth();
@@ -120,7 +121,7 @@ export default function sendRequest() {
                 onPress={async () => {
                     if (!journey) return;
 
-                    else if (message == '') {
+                    if (message.trim() === "") {
 
                         Alert.alert('Error', 'Add a message')
                         return
@@ -133,17 +134,13 @@ export default function sendRequest() {
                     message,
                     });
 
-                    // INSERT into journey_requests table
-
-                    await db.runAsync(
-
-                        'INSERT INTO requests (requesterID, recipientID, journeyID, message, status) VALUES (?, ?, ?, ?, "Pending")',
-                        [user!.userID, journey.userID, journey.journeyID, message]
-
+                    await createRequest(
+                        db,
+                        user!.userID,
+                        journey.userID,
+                        journey.journeyID,
+                        message.trim()
                     );
-
-                    const rows = await db.getAllAsync('SELECT * FROM requests');
-                    console.log('REQUESTS TABLE CONTENTS:', JSON.stringify(rows, null, 2));
                     
                     Alert.alert(
                     'Success',
