@@ -1,11 +1,12 @@
-import { StyleSheet, View, Text, Pressable, Alert, FlatList, ActivityIndicator } from 'react-native';
-import { useState, useEffect, useCallback } from "react";
+import { StyleSheet, View, Text, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { useState, useCallback } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from "expo-router";
 
 type Request = {
+
   requestID: number;
   requesterID: number;
   recipientID: number;
@@ -177,29 +178,6 @@ setRatings(ratingMap);
             <Text>Destination: {item.destination}</Text>
             <Text>Status: {item.status}</Text>
             <Text style={styles.messageBody}>Message: {item.message}</Text>
-
-
-            {/* <Pressable
-              style={({ pressed }) => [styles.cancelButton, pressed && { backgroundColor: "rgb(237, 14, 14)"}]}
-      
-              onPress={() => cancelRequest(item.requestID)}
-      
-              >  
-              {({ pressed }) => (
-              <Text style={[styles.cancelButtonText, pressed && { color: "white" }]}>Cancel Request</Text>
-              )}
-            </Pressable> */}
-
-            {/* New pressable to take user to review page
-            
-                However, before taking them there, check the date - if they are trying to leave a review for a journey that has yet to take place, make an alert
-
-                Else, let them proceed
-
-                Pressing "Review" again should let them view their review, and they can change it if need be
-            
-            */}
-
           </View>
 
         )}
@@ -212,32 +190,70 @@ setRatings(ratingMap);
 const styles = StyleSheet.create({
 
   container: {
-
     flex: 1,
     alignItems: "center",
     marginTop: 10
-  
   },
 
   messageDisplay: {
-    
     width: 350,
     marginBottom: 40
-  
   },
 
-  messageTime: { color: "gray", fontSize: 12, textAlign: "right" },
-  messageHeader: { fontSize: 16, fontWeight: "bold", marginBottom: 10, },
-  messageBody: { marginTop: 10, marginBottom: 10, textAlign: "justify"},
-  message: { backgroundColor: "white", marginTop: 20, padding: 10, borderRadius: 10 },
-  toggleContainer: { flexDirection: "row", marginTop: 15, marginBottom: 10, backgroundColor: "#E6F4FA", borderRadius: 25, padding: 4 },
-  toggleButton: { paddingVertical: 8, paddingHorizontal: 24, borderRadius: 20 },
-  toggleButtonActive: { backgroundColor: "rgba(11, 161, 226, 1)" },
-  toggleText: { color: "rgba(11, 161, 226, 1)", fontWeight: "600" },
-  toggleTextActive: { color: "white" },
+  messageTime: { 
+    color: "gray",
+    fontSize: 12,
+    textAlign: "right" 
+  },
+
+  messageHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10, 
+  },
+
+  messageBody: { 
+    marginTop: 10, 
+    marginBottom: 10, 
+    textAlign: "justify"
+  },
+
+  message: { 
+    backgroundColor: "white", 
+    marginTop: 20, 
+    padding: 10, 
+    borderRadius: 10
+  },
+
+  toggleContainer: { 
+    flexDirection: "row", 
+    marginTop: 15, 
+    marginBottom: 10, 
+    backgroundColor: "#E6F4FA", 
+    borderRadius: 25, 
+    padding: 4
+  },
+
+  toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 20
+  },
+
+  toggleButtonActive: {
+    backgroundColor: "rgba(11, 161, 226, 1)"
+  },
+
+  toggleText: {
+    color: "rgba(11, 161, 226, 1)",
+    fontWeight: "600"
+  },
+
+  toggleTextActive: { 
+    color: "white"
+  },
 
   cancelButton : {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(201, 24, 24, 0.55)",
@@ -245,13 +261,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     margin: 20,
-
   },
   
-    cancelButtonText : {
-
-      color: "rgb(0, 0, 0)",
-    
+  cancelButtonText : {
+    color: "rgb(0, 0, 0)",
   },
-
 });

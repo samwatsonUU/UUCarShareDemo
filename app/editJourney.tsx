@@ -1,23 +1,22 @@
-import { StyleSheet, Text, View, Keyboard, Pressable, TextInput, Alert } from 'react-native';
+import { StyleSheet, Text, View, Keyboard, Pressable, Alert } from 'react-native';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function editJourney() {
 
-  const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
-
-  const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
-
   const db = useSQLiteContext();
 
+  const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
+  const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
   const [showDepartingPicker, setShowDepartingPicker] = useState(false);
   const [showArrivingPicker, setShowArrivingPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const API_KEY = "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs";
 
   const[form, setForm] = useState({
 
@@ -39,26 +38,22 @@ export default function editJourney() {
   })
 
   const saveChanges = async () => {
+
     try {
 
-      // Basic required field check
-      if (
-        !form.origin ||
-        !form.destination ||
-        !form.departingAt ||
-        !form.mustArriveAt ||
-        !form.date
-      ) {
-        throw new Error("No fields can be empty.");
-      }
+      // ensure no inputs are empty
+      if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
 
-      if (
-        form.originLatitude === null ||
-        form.originLongitude === null ||
-        form.destinationLatitude === null ||
-        form.destinationLongitude === null
-      ) {
-        throw new Error("Please select both an origin and a destination from the suggestions list.");
+        throw new Error('All fields are required');
+          
+      } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
+
+        throw new Error("Please select both an origin and a destination from the suggestions list.")
+
+      } else if(form.mustArriveAt < form.departingAt) {
+
+        throw new Error("Departure Time must be before Must Arrive At time.")
+
       }
 
       // Format Date objects into DB string format
@@ -192,105 +187,44 @@ export default function editJourney() {
         };
     
     loadJourney();
-    }, [journeyID]);
 
-    return (
-    
-      <Pressable
-        style={{ flex: 1 }}
-        onPress={() => {
-        Keyboard.dismiss();
-        setActiveAutocomplete(null);
-        }}
-      >
-          <View style={styles.container}>
+  }, [journeyID]);
 
-            <View style={styles.form}>
-                    
-              <View style={styles.inputGroup}>
-                        
-                <Text style={styles.label}>Origin</Text>
-        
+  return (
+  
+    <Pressable
+      style={{ flex: 1 }}
+      onPress={() => {
+      Keyboard.dismiss();
+      setActiveAutocomplete(null);
+      }}
+    >
+        <View style={styles.container}>
+
+          <View style={styles.form}>
                   
-                  <View
-                    style={[
-                      styles.inputWrapper,
-                      {
-                        zIndex: activeAutocomplete === "origin" ? 3000 : 1,
-                        elevation: activeAutocomplete === "origin" ? 3000 : 1,
-                      },
-                    ]}
-                  >
-
-
-                    <GooglePlacesAutocomplete
-                      placeholder="E.g. Eglinton"
-                      fetchDetails={true}
-                      debounce={300}
-                      minLength={2}
-                      onPress={(data, details) => {
-
-                        if(!details) return;
-
-                        setActiveAutocomplete(null);
-
-                        setForm({
-                          ...form,
-                          origin: data.description,
-                          originLatitude: details.geometry.location.lat,
-                          originLongitude: details.geometry.location.lng,
-                        });
-
-                      }}
-
-                      query={{
-                        key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
-                        language: "en",
-                      }}
-                      textInputProps={{
-                        value: form.origin,
-                        onFocus: () => setActiveAutocomplete("origin"),
-                        onBlur: () => setActiveAutocomplete(null),
-                        onChangeText: (text) =>
-                        setForm({ ...form, origin: text }),
-                      }}
-                      styles={{
-                        container: { flex: 0 },
-                        textInput: styles.input,
-                        listView: {
-                          position: "absolute",
-                          top: 45,           
-                          left: 0,
-                          right: 0,
-                          zIndex: 2000,
-                        },
-                      }}
-                    />
-
-                  </View>
-              </View>
-              
-              <View style={styles.inputGroup}>
-              
-                <Text style={styles.label}>Destination</Text>
-            
+            <View style={styles.inputGroup}>
+                      
+              <Text style={styles.label}>Origin</Text>
+      
+                
                 <View
                   style={[
                     styles.inputWrapper,
                     {
-                      zIndex: activeAutocomplete === "destination" ? 3000 : 1,
-                      elevation: activeAutocomplete === "destination" ? 3000 : 1,
+                      zIndex: activeAutocomplete === "origin" ? 3000 : 1,
+                      elevation: activeAutocomplete === "origin" ? 3000 : 1,
                     },
                   ]}
                 >
 
+
                   <GooglePlacesAutocomplete
-                    placeholder="E.g. Magee"
+                    placeholder="E.g. Eglinton"
                     fetchDetails={true}
                     debounce={300}
                     minLength={2}
                     onPress={(data, details) => {
-
 
                       if(!details) return;
 
@@ -298,23 +232,23 @@ export default function editJourney() {
 
                       setForm({
                         ...form,
-                        destination: data.description,
-                        destinationLatitude: details.geometry.location.lat,
-                        destinationLongitude: details.geometry.location.lng,
+                        origin: data.description,
+                        originLatitude: details.geometry.location.lat,
+                        originLongitude: details.geometry.location.lng,
                       });
 
                     }}
 
                     query={{
-                      key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                      key: API_KEY,
                       language: "en",
                     }}
                     textInputProps={{
-                      value: form.destination,
-                      onFocus: () => setActiveAutocomplete("destination"),
+                      value: form.origin,
+                      onFocus: () => setActiveAutocomplete("origin"),
                       onBlur: () => setActiveAutocomplete(null),
                       onChangeText: (text) =>
-                        setForm({ ...form, destination: text }),
+                      setForm({ ...form, origin: text }),
                     }}
                     styles={{
                       container: { flex: 0 },
@@ -328,138 +262,190 @@ export default function editJourney() {
                       },
                     }}
                   />
+
                 </View>
-              
+            </View>
+            
+            <View style={styles.inputGroup}>
+            
+              <Text style={styles.label}>Destination</Text>
+          
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    zIndex: activeAutocomplete === "destination" ? 3000 : 1,
+                    elevation: activeAutocomplete === "destination" ? 3000 : 1,
+                  },
+                ]}
+              >
+
+                <GooglePlacesAutocomplete
+                  placeholder="E.g. Magee"
+                  fetchDetails={true}
+                  debounce={300}
+                  minLength={2}
+                  onPress={(data, details) => {
+
+
+                    if(!details) return;
+
+                    setActiveAutocomplete(null);
+
+                    setForm({
+                      ...form,
+                      destination: data.description,
+                      destinationLatitude: details.geometry.location.lat,
+                      destinationLongitude: details.geometry.location.lng,
+                    });
+
+                  }}
+
+                  query={{
+                    key: API_KEY,
+                    language: "en",
+                  }}
+                  textInputProps={{
+                    value: form.destination,
+                    onFocus: () => setActiveAutocomplete("destination"),
+                    onBlur: () => setActiveAutocomplete(null),
+                    onChangeText: (text) =>
+                      setForm({ ...form, destination: text }),
+                  }}
+                  styles={{
+                    container: { flex: 0 },
+                    textInput: styles.input,
+                    listView: {
+                      position: "absolute",
+                      top: 45,           
+                      left: 0,
+                      right: 0,
+                      zIndex: 2000,
+                    },
+                  }}
+                />
               </View>
-
-
-<View style={styles.inputGroup}>
-  <Text style={styles.label}>Departing At</Text>
-
-  <View style={styles.inputWrapper}>
-    <Pressable
-      style={[styles.input, { justifyContent: "center", height: 44 }]}
-      onPress={() => setShowDepartingPicker(true)}
-    >
-      <Text>
-        {form.departingAt
-          ? form.departingAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          : "Select time"}
-      </Text>
-    </Pressable>
-
-    {showDepartingPicker && (
-      <DateTimePicker
-        value={form.departingAt ?? new Date()}
-        mode="time"
-        display="clock"
-        is24Hour
-        onChange={(e, selected) => {
-          setShowDepartingPicker(false);
-          if (selected) setForm({ ...form, departingAt: selected });
-        }}
-      />
-    )}
-  </View>
-</View>
-
-
-<View style={styles.inputGroup}>
-  <Text style={styles.label}>Must Arrive At</Text>
-
-  <View style={styles.inputWrapper}>
-    <Pressable
-      style={[styles.input, { justifyContent: "center", height: 44 }]}
-      onPress={() => setShowArrivingPicker(true)}
-    >
-      <Text>
-        {form.mustArriveAt
-          ? form.mustArriveAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          : "Select time"}
-      </Text>
-    </Pressable>
-
-    {showArrivingPicker && (
-      <DateTimePicker
-        value={form.mustArriveAt ?? new Date()}
-        mode="time"
-        display="clock"
-        is24Hour
-        onChange={(e, selected) => {
-          setShowArrivingPicker(false);
-          if (selected) setForm({ ...form, mustArriveAt: selected });
-        }}
-      />
-    )}
-  </View>
-</View>
-
-
-
-
-<View style={styles.inputGroup}>
-  <Text style={styles.label}>Date</Text>
-
-  <View style={styles.inputWrapper}>
-    <Pressable
-      style={[styles.input, { justifyContent: "center", height: 44 }]}
-      onPress={() => setShowDatePicker(true)}
-    >
-      <Text>
-        {form.date
-          ? form.date.toLocaleDateString("en-GB")
-          : "Select date"}
-      </Text>
-    </Pressable>
-  </View>
-
-  {showDatePicker && (
-    <DateTimePicker
-      value={form.date ?? new Date()}
-      mode="date"
-      display="calendar"
-      onChange={(e, selected) => {
-        setShowDatePicker(false);
-        if (selected) setForm({ ...form, date: selected });
-      }}
-    />
-  )}
-</View>
-
-
-
-
-
+            
             </View>
 
-            <Pressable
-              style={({ pressed }) => [styles.saveChangesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-      
-              onPress={saveChanges}
-      
-              >  
-              {({ pressed }) => (
-              <Text style={[styles.buttonText, pressed && { color: "white" }]}>Save Changes</Text>
-              )}
-            </Pressable>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Departing At</Text>
 
-            <Pressable
-              style={({ pressed }) => [styles.deleteButton, pressed && { backgroundColor: "rgb(237, 14, 14)"}]}
-      
-              onPress={deleteJourney}
-      
-              >  
-              {({ pressed }) => (
-              <Text style={[styles.deleteButtonText, pressed && { color: "white" }]}>Delete This Journey</Text>
+              <View style={styles.inputWrapper}>
+                <Pressable
+                  style={[styles.input, { justifyContent: "center", height: 44 }]}
+                  onPress={() => setShowDepartingPicker(true)}
+                >
+                  <Text>
+                    {form.departingAt
+                      ? form.departingAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "Select time"}
+                  </Text>
+                </Pressable>
+
+                {showDepartingPicker && (
+                  <DateTimePicker
+                    value={form.departingAt ?? new Date()}
+                    mode="time"
+                    display="clock"
+                    is24Hour
+                    onChange={(e, selected) => {
+                      setShowDepartingPicker(false);
+                      if (selected) setForm({ ...form, departingAt: selected });
+                    }}
+                  />
+                )}
+              </View>
+            </View>
+
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Must Arrive At</Text>
+
+              <View style={styles.inputWrapper}>
+                <Pressable
+                  style={[styles.input, { justifyContent: "center", height: 44 }]}
+                  onPress={() => setShowArrivingPicker(true)}
+                >
+                  <Text>
+                    {form.mustArriveAt
+                      ? form.mustArriveAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "Select time"}
+                  </Text>
+                </Pressable>
+
+                {showArrivingPicker && (
+                  <DateTimePicker
+                    value={form.mustArriveAt ?? new Date()}
+                    mode="time"
+                    display="clock"
+                    is24Hour
+                    onChange={(e, selected) => {
+                      setShowArrivingPicker(false);
+                      if (selected) setForm({ ...form, mustArriveAt: selected });
+                    }}
+                  />
+                )}
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Date</Text>
+
+              <View style={styles.inputWrapper}>
+                <Pressable
+                  style={[styles.input, { justifyContent: "center", height: 44 }]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text>
+                    {form.date
+                      ? form.date.toLocaleDateString("en-GB")
+                      : "Select date"}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.date ?? new Date()}
+                  mode="date"
+                  display="calendar"
+                  onChange={(e, selected) => {
+                    setShowDatePicker(false);
+                    if (selected) setForm({ ...form, date: selected });
+                  }}
+                />
               )}
-            </Pressable>
-              
+            </View>
+
           </View>
 
-        </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.saveChangesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+    
+            onPress={saveChanges}
+    
+            >  
+            {({ pressed }) => (
+            <Text style={[styles.buttonText, pressed && { color: "white" }]}>Save Changes</Text>
+            )}
+          </Pressable>
 
-    )
+          <Pressable
+            style={({ pressed }) => [styles.deleteButton, pressed && { backgroundColor: "rgb(237, 14, 14)"}]}
+    
+            onPress={deleteJourney}
+    
+            >  
+            {({ pressed }) => (
+            <Text style={[styles.deleteButtonText, pressed && { color: "white" }]}>Delete This Journey</Text>
+            )}
+          </Pressable>
+            
+        </View>
 
+      </Pressable>
+  )
 }
 
 const styles = StyleSheet.create({

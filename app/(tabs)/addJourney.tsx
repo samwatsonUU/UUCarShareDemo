@@ -1,134 +1,116 @@
 import { useState } from "react";
-import { View, TextInput, StyleSheet, Alert, Text, Pressable, Keyboard } from 'react-native'
+import { View, StyleSheet, Alert, Text, Pressable, Keyboard } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-
 export default function AddJourney() {
+
+  const db = useSQLiteContext();
+  const { user } = useAuth();
+
+  const API_KEY = "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs";
+  const [showDepartingPicker, setShowDepartingPicker] = useState(false);
+  const [showArrivingPicker, setShowArrivingPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
 
   const[form, setForm] = useState({
 
+    origin: '',
+    originLatitude: null as number | null,
+    originLongitude: null as number | null,
+    destination: '',
+    destinationLatitude: null as number | null,
+    destinationLongitude: null as number | null,
+    departingAt: null as Date | null,
+    mustArriveAt: null as Date | null,
+    date: null as Date | null,
+
+  })
+
+  const handleSubmit = async () => {
+
+    try {
+
+      // ensure no inputs are empty
+      if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
+
+        throw new Error('All fields are required');
+          
+      } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
+
+        throw new Error("Please select both an origin and a destination from the suggestions list.")
+
+      } else if(form.mustArriveAt < form.departingAt) {
+
+        throw new Error("Departure Time must be before Must Arrive At time")
+
+      }
+
+      const formattedDate = form.date.toLocaleDateString("en-GB");
+
+      const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
+
+      const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
+
+      const journeyType = user!.canDrive === 1 ? "driver" : "passenger";
+
+      // insert data into the database
+      await db.runAsync(
+
+        'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, journeyType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          user!.userID,
+          form.origin,
+          form.originLatitude,
+          form.originLongitude,
+          form.destination,
+          form.destinationLatitude,
+          form.destinationLongitude,
+          formattedDepartingAt,
+          formattedMustArriveAt,
+          formattedDate,
+          journeyType
+        ]
+      );
+
+      Alert.alert('Success', 'Journey added successfully!');
+      setForm({
+
         origin: '',
-        originLatitude: null as number | null,
-        originLongitude: null as number | null,
+        originLatitude: null,
+        originLongitude: null,
 
         destination: '',
-        destinationLatitude: null as number | null,
-        destinationLongitude: null as number | null,
+        destinationLatitude: null,
+        destinationLongitude: null,
 
-        departingAt: null as Date | null,
-        mustArriveAt: null as Date | null,
-        date: null as Date | null,
+        departingAt: null,
+        mustArriveAt: null,
+        date: null,
 
-    })
+      });
+    
+    } catch (error: unknown) {
 
-    const [showDepartingPicker, setShowDepartingPicker] = useState(false);
-    const [showArrivingPicker, setShowArrivingPicker] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
+      console.error(error);
 
-    const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
+      const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
 
-    const db = useSQLiteContext();
-
-    const { user } = useAuth();
-
-    const handleSubmit = async () => {
-
-        try {
-
-            // ensure no inputs are empty
-            if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
-
-              throw new Error('All fields are required');
-                
-            } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
-
-              throw new Error("Please select both an origin and a destination from the suggestions list.")
-
-            }
-
-
-            console.log('Journey about to be inserted:', {
-            userID: user!.userID,
-            origin: form.origin,
-            originLatitude: form.originLatitude,
-            originLongitude: form.originLongitude,
-            destination: form.destination,
-            destinationLatitude: form.destinationLatitude,
-            destinationLongitude: form.destinationLongitude,
-            departingAt: form.departingAt,
-            mustArriveAt: form.mustArriveAt,
-            date: form.date,
-            });
-
-            const formattedDate = form.date.toLocaleDateString("en-GB");
-
-            const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
-
-            const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
-
-            const journeyType = user!.canDrive === 1 ? "driver" : "passenger";
-
-            // insert data into the database
-            await db.runAsync(
-
-              'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, journeyType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [
-                user!.userID,
-                form.origin,
-                form.originLatitude,
-                form.originLongitude,
-                form.destination,
-                form.destinationLatitude,
-                form.destinationLongitude,
-                formattedDepartingAt,
-                formattedMustArriveAt,
-                formattedDate,
-                journeyType
-              ]
-
-            );
-
-            console.log('New Journey:', form.origin + " to " + form.destination);
-
-            Alert.alert('Success', 'Journey added successfully!');
-            setForm({
-
-              origin: '',
-              originLatitude: null,
-              originLongitude: null,
-
-              destination: '',
-              destinationLatitude: null,
-              destinationLongitude: null,
-
-              departingAt: null,
-              mustArriveAt: null,
-              date: null,
-
-            });
-        
-        } catch (error: unknown) {
-
-            console.error(error);
-
-            const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
-
-            Alert.alert('Error', message);
-        }
-      };
+      Alert.alert('Error', message);
+    }
+  };
 
   return (
 
-
     <Pressable
-    style={{ flex: 1 }}
-    onPress={() => {
-      Keyboard.dismiss();
-      setActiveAutocomplete(null);
-    }}
+      style={{ flex: 1 }}
+      onPress={() => {
+        Keyboard.dismiss();
+        setActiveAutocomplete(null);
+      }}
     >
       <View style={styles.container}>
 
@@ -136,7 +118,7 @@ export default function AddJourney() {
 
           <View style={styles.inputGroup}>
             
-          <Text style={styles.label}>Origin</Text>
+            <Text style={styles.label}>Origin</Text>
 
             <View
               style={[
@@ -167,9 +149,8 @@ export default function AddJourney() {
 
                 }}
 
-
                 query={{
-                  key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                  key: API_KEY,
                   language: "en",
                 }}
                 textInputProps={{
@@ -236,7 +217,7 @@ export default function AddJourney() {
                 }}
 
                 query={{
-                  key: "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs",
+                  key: API_KEY,
                   language: "en",
                 }}
                 textInputProps={{
@@ -246,27 +227,26 @@ export default function AddJourney() {
                   onChangeText: (text) =>
                     setForm({ ...form, destination: text }),
                 }}
-                  styles={{
-                    container: { flex: 0 },
-                    textInput: {
-                      height: 44,
-                      paddingVertical: 0,  
-                      paddingHorizontal: 10,
-                      borderWidth: 1,
-                      borderColor: "gray",
-                      margin: 10,
-                    },
-                    listView: {
-                      position: "absolute",
-                      top: 44,
-                      left: 0,
-                      right: 0,
-                      zIndex: 2000,
-                    },
-                  }}
+                styles={{
+                  container: { flex: 0 },
+                  textInput: {
+                    height: 44,
+                    paddingVertical: 0,  
+                    paddingHorizontal: 10,
+                    borderWidth: 1,
+                    borderColor: "gray",
+                    margin: 10,
+                  },
+                  listView: {
+                    position: "absolute",
+                    top: 44,
+                    left: 0,
+                    right: 0,
+                    zIndex: 2000,
+                  },
+                }}
               />
             </View>
-
           </View>
 
           <View style={styles.inputGroup}>
@@ -297,7 +277,6 @@ export default function AddJourney() {
               )}
 
             </View>
-
           </View>
 
           <View style={styles.inputGroup}>
@@ -328,7 +307,6 @@ export default function AddJourney() {
               )}
 
             </View>
-
           </View>
 
           <View style={styles.inputGroup}>
@@ -357,9 +335,7 @@ export default function AddJourney() {
               />
             )}
 
-
           </View>
-
         </View>
 
         <Pressable
@@ -371,58 +347,40 @@ export default function AddJourney() {
           )}
 
         </Pressable>
-
       </View>
-
     </Pressable>
-
   );  
-
-
-  
 }
 
 const styles = StyleSheet.create({
 
   container: {
-
     alignItems: "center",
-
   },
 
   title: {
-
     fontSize: 24,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
-
   },
 
   form: {
-
     borderRadius: 10,
     width: 320,
-    
-
   },
 
   inputGroup: {
-
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-
   },
 
   label: {
-
     width: 90,
     fontWeight: "bold",
-
   },
 
   input: {
-
     height: 44,
     borderWidth: 1,
     borderColor: "gray",
@@ -431,32 +389,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     justifyContent: "center",
     borderRadius: 5,
-
   },
 
 
   inputWrapper: {
-
     flex: 1,
-
   },
 
   button: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
     width: 100,
     borderRadius: 5,
     padding: 10
-
-
   },
 
   buttonText: {
-
     color: "rgba(11, 161, 226, 1)",
-
   }
-   
 })

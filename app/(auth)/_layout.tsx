@@ -10,14 +10,18 @@ export default function AuthLayout() {
   return (
 
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+
       <Stack
         screenOptions={{
           headerShown: false,
-        }}>
+      }}>
+
         <Stack.Screen name="forgotPassword" options={{ headerShown: true, title: 'Forgot Password' }} />
+
       </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    
+
+      <StatusBar style="auto" />
+
+    </ThemeProvider>
   );
 }

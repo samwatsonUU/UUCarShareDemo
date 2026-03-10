@@ -28,53 +28,11 @@ export default function () {
 
     const approve = async () => {
 
-
-
-
-// Message to confirm status is updated
-// Status Before
-
-const result1 = await db.getFirstAsync(
-    `SELECT status FROM requests WHERE requestID = ?`,
-    [requestID]
-) as { status: string } | undefined;
-
-if (result1) {
-    console.log('Status Before:', `${result1.status}`);
-} else {
-    console.log(`No request found for ID: ${requestID}`);
-}
-
-// End message
-
-
         await db.runAsync(
 
             `UPDATE requests SET status = ? WHERE requestID = ?`, ["Approved", numericRequestID]
 
         ); 
-
-
-
-// Message to confirm status is updated
-// Status after
-
-const result2 = await db.getFirstAsync(
-    `SELECT status FROM requests WHERE requestID = ?`,
-    [requestID]
-) as { status: string } | undefined;
-
-if (result2) {
-    console.log('Status After:', `${result2.status}`);
-} else {
-    console.log(`No request found for ID: ${requestID}`);
-}
-
-// End message
-
-
-
-
 
         Alert.alert("Success", "Request approved!");
         router.replace("/(tabs)/inbox");
@@ -83,59 +41,21 @@ if (result2) {
 
     const deny = async () => {
 
-// Message to confirm status is updated
-// Status Before
-
-const result1 = await db.getFirstAsync(
-    `SELECT status FROM requests WHERE requestID = ?`,
-    [requestID]
-) as { status: string } | undefined;
-
-if (result1) {
-    console.log('Status Before:', `${result1.status}`);
-} else {
-    console.log(`No request found for ID: ${requestID}`);
-}
-
-// End message
-
-
         await db.runAsync(
 
             `UPDATE requests SET status = ? WHERE requestID = ?`, ["Denied", numericRequestID]
 
         ); 
 
-
-
-// Message to confirm status is updated
-// Status after
-
-const result2 = await db.getFirstAsync(
-    `SELECT status FROM requests WHERE requestID = ?`,
-    [requestID]
-) as { status: string } | undefined;
-
-if (result2) {
-    console.log('Status After:', `${result2.status}`);
-} else {
-    console.log(`No request found for ID: ${requestID}`);
-}
-
-// End message
-
-
-
-
-
         Alert.alert("Success", "Request has been denied!");
         router.replace("/(tabs)/inbox");
-
 
     }
 
     useEffect(() => {
+
             const loadData = async () => {
+
                 try {
         
                     // Selected request
@@ -162,17 +82,16 @@ if (result2) {
                     setRequest(null);
     
                 }
-    
             };
     
             loadData();
     
         }, [requestID]);
 
-
     return(
 
         <View style={styles.container}>
+
             <Text style={styles.subtitle}>Details of the request you are responding to:</Text>
 
             {request && (
@@ -220,29 +139,21 @@ if (result2) {
             >{({ pressed }) => (
             <Text style={[styles.buttonText, pressed && { color: "white" }]}>Deny Request</Text>)}</Pressable>                
         </View>
-
-
-
     );
-    
 }
-
 
 const styles = StyleSheet.create({
 
     container: {
-
-    flex: 1,
-    alignItems: "center",
-
-  },
+        flex: 1,
+        alignItems: "center",
+    },
     
-  subtitle: {
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 10,
-
-  },
+    subtitle: {
+        fontSize: 16,
+        marginTop: 10,
+        marginBottom: 10,
+    },
 
     journeyCard: {
         width: 320,
@@ -252,29 +163,29 @@ const styles = StyleSheet.create({
     },
 
     messageContainer: {
-    width: 320,
-    marginTop: 15,
+        width: 320,
+        marginTop: 15,
     },
 
     messageLabel: {
-    marginBottom: 5,
-    fontSize: 14,
+        marginBottom: 5,
+        fontSize: 14,
     },
 
     messageInput: {
-    minHeight: 200,
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.15)",
+        minHeight: 200,
+        backgroundColor: "white",
+        borderRadius: 10,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.15)",
     },
 
     charCount: {
-    alignSelf: "flex-end",
-    marginTop: 5,
-    fontSize: 12,
-    color: "rgba(0,0,0,0.6)",
+        alignSelf: "flex-end",
+        marginTop: 5,
+        fontSize: 12,
+        color: "rgba(0,0,0,0.6)",
     },
 
     denyButton: {
@@ -300,5 +211,4 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 20,
     },
-
 })

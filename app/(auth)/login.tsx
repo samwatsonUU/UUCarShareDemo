@@ -14,10 +14,10 @@
 
 import { StyleSheet, Text, View, ScrollView, Pressable, Alert, TextInput } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
+import { useState, useEffect } from "react";
 
 type UserRow = {
 
@@ -97,14 +97,24 @@ export default function login() {
 
     } catch (error: unknown) {
 
-        console.error(error);
+      console.error(error);
 
-        const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
+      const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
 
-        Alert.alert('Error', message);
+      Alert.alert('Error', message);
 
     }
   };
+
+
+  useEffect(() => {
+    Alert.alert(
+      "GDPR Declaration",
+      "By using UUCarShare you consent to the processing of your email, name and gender.",
+      [{ text: "I Understand" }]
+    );
+  }, []);
+
 
   return (
 
@@ -187,64 +197,49 @@ export default function login() {
         )}
 
       </Pressable>
-
     </View>
-
   );
 }
 
 const styles = StyleSheet.create({
 
   container: {
-
     alignItems: "center",
     marginTop: 40
-
   },
 
   title: {
-
     fontSize: 48,
     paddingBottom: 10,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)"
-
   },
 
   buttonText: {
-
     color: "rgba(11, 161, 226, 1)",
-
   },
 
   form: {
-
     backgroundColor: "white",
     borderRadius: 10,
     width: 300,
     marginTop: 20,
     marginBottom: 20,
     padding: 15,
-
   },
 
   label: {
-
     fontWeight: "bold",
     paddingBottom: 10
-
   },
 
   input: {
-
     borderWidth: 1,
     borderColor: "gray",
     margin: 5,
- 
   },
 
   button: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
@@ -252,12 +247,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-
-
   },
 
   registerButton: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(168, 168, 168, 0.2)",
@@ -265,21 +257,17 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-
   },
 
   forgotPasswordButton: {
-
     alignItems: "center",
     alignSelf: "center",
     width: 100,
     borderRadius: 5,
     padding: 10,
-
   },
 
   buttonHoldToShow: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
@@ -287,7 +275,5 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginTop: 10,
     marginBottom: 10
-
   }
-
 })

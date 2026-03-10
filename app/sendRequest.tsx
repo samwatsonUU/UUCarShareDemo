@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
 
 type Journey = {
+
   journeyID: number;
   userID: number;
   origin: string;
@@ -18,22 +19,28 @@ type Journey = {
   mustArriveAt: string;
   date: string;
   status: string;
+
 };
 
 type JourneyWithUser = Journey & {
+
   firstName: string;
+
 };
 
 export default function sendRequest() {
 
-    const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
     const db = useSQLiteContext();
     const { user } = useAuth();
+
+    const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
     const [journey, setJourney] = useState<JourneyWithUser | null>(null);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
+
         const loadData = async () => {
+
             try {
     
                 // Selected journey
@@ -61,7 +68,6 @@ export default function sendRequest() {
                 setJourney(null);
 
             }
-
         };
 
         loadData();
@@ -106,7 +112,6 @@ export default function sendRequest() {
 
             </View>
 
-                        
             <Pressable
                 style={({ pressed }) => [
                     styles.sendButton,
@@ -128,9 +133,7 @@ export default function sendRequest() {
                     message,
                     });
 
-                    
                     // INSERT into journey_requests table
-
 
                     await db.runAsync(
 
@@ -158,70 +161,65 @@ export default function sendRequest() {
                 )}
             </Pressable>
         </View>
-
     )}
 
 const styles = StyleSheet.create({
 
-container: {
-
-    flex: 1,
-    alignItems: "center",
-
-  },
+    container: {
+        flex: 1,
+        alignItems: "center",
+    },
     
-  subtitle: {
-    fontSize: 16,
-    marginTop: 10,
-    marginBottom: 10,
+    subtitle: {
+        fontSize: 16,
+        marginTop: 10,
+        marginBottom: 10,
+    },
 
-  },
+    journeyCard: {
+        width: 320,
+        padding: 15,
+        backgroundColor: "rgba(11, 161, 226, 0.26)",
+        borderRadius: 25,
+    },
 
-journeyCard: {
-    width: 320,
-    padding: 15,
-    backgroundColor: "rgba(11, 161, 226, 0.26)",
-    borderRadius: 25,
-  },
+    messageContainer: {
+        width: 320,
+        marginTop: 15,
+    },
 
-  messageContainer: {
-  width: 320,
-  marginTop: 15,
-},
+    messageLabel: {
+        marginBottom: 5,
+        fontSize: 14,
+    },
 
-messageLabel: {
-  marginBottom: 5,
-  fontSize: 14,
-},
+    messageInput: {
+        minHeight: 200,
+        backgroundColor: "white",
+        borderRadius: 10,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.15)",
+    },
 
-messageInput: {
-  minHeight: 200,
-  backgroundColor: "white",
-  borderRadius: 10,
-  padding: 10,
-  borderWidth: 1,
-  borderColor: "rgba(0,0,0,0.15)",
-},
+    charCount: {
+        alignSelf: "flex-end",
+        marginTop: 5,
+        fontSize: 12,
+        color: "rgba(0,0,0,0.6)",
+    },
 
-charCount: {
-  alignSelf: "flex-end",
-  marginTop: 5,
-  fontSize: 12,
-  color: "rgba(0,0,0,0.6)",
-},
+    sendButton: {
+        marginTop: 20,
+        backgroundColor: "rgba(11, 161, 226, 0.2)",
+        padding: 12,
+        borderRadius: 8,
+        width: 160,
+        alignItems: "center",
+    },
 
-sendButton: {
-  marginTop: 20,
-  backgroundColor: "rgba(11, 161, 226, 0.2)",
-  padding: 12,
-  borderRadius: 8,
-  width: 160,
-  alignItems: "center",
-},
-
-sendButtonText: {
-  color: "rgba(11, 161, 226, 1)",
-  fontSize: 16,
-},
-
+    sendButtonText: {
+        color: "rgba(11, 161, 226, 1)",
+        fontSize: 16,
+    },
 })

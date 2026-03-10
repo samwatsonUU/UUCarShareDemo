@@ -29,7 +29,6 @@ export default function Review() {
                 Number(journeyID),
                 rating
             ]
-
         )
 
         const rows = await db.getAllAsync('SELECT * FROM reviews');
@@ -37,7 +36,6 @@ export default function Review() {
 
         Alert.alert("Success", "Review Submitted!");
         router.replace("/(tabs)/myJourneys");
-
     }
 
     return (
@@ -80,12 +78,34 @@ export default function Review() {
                     pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }
                 ]}
                 onPress={addReview}
-                
             >
 
                 <Text>Submit Review</Text>
 
             </Pressable>
+
+            <Pressable 
+                style={({ pressed }) => [
+                    styles.reportButton,
+                    pressed && { backgroundColor: "rgb(255, 0, 0)" }
+                ]}
+                onPress= { () => {
+                    
+                    Alert.alert(
+                        "Success",
+                        "This user has been reported to our team.",
+                        [
+                            {
+                            text: "OK",
+                            onPress: () => router.replace("/(tabs)/myJourneys")
+                            }
+                        ]
+                    );
+                }}
+            >
+                <Text>Report User</Text>
+
+            </Pressable>                
 
         </View>
     )
@@ -107,15 +127,25 @@ const styles = StyleSheet.create({
     },
 
     submitButton: {
-
-    marginTop: 20,
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: "rgba(11, 161, 226, 0.2)",
-    width: 120,
-    borderRadius: 5,
-    padding: 10,
-    
+        marginTop: 20,
+        alignItems: "center",
+        alignSelf: "center",
+        backgroundColor: "rgba(11, 161, 226, 0.2)",
+        width: 120,
+        borderRadius: 5,
+        padding: 10,
     },
+
+    reportButton: {
+
+        marginTop: 20,
+        alignItems: "center",
+        alignSelf: "center",
+        backgroundColor: "rgba(201, 24, 24, 0.55)",
+        width: 120,
+        borderRadius: 5,
+        padding: 10,
+
+    }
 
 });

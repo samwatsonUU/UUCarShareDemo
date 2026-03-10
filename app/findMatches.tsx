@@ -28,57 +28,54 @@ type JourneyWithUserAndDistance = Journey & {
   destinationDistance: number;
 };
 
-
-
-
 export default function FindMatches() {
   
-
-  const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const db = useSQLiteContext();
   const { user } = useAuth();
+
+  const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [journey, setJourney] = useState<Journey | null>(null);
   const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ----- Unit test ---- //
-    
-      const reviewScore = async (userID: number) => {
-    
-        try {
-    
-          const result = await db.getFirstAsync<{ total: number, count: number }>(
-            `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
-          );
-    
-          if (!result || result.count === 0) return 0;
-    
-          const average = Number((result.total / result.count).toFixed(1));
-    
-          return average;
-    
-        } catch (err) {
-    
-          console.error("Review score error", err);
-    
-        }
-    
-      }
+  const reviewScore = async (userID: number) => {
 
+    try {
 
+      const result = await db.getFirstAsync<{ total: number, count: number }>(
+        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
+      );
 
+      if (!result || result.count === 0) return 0;
+
+      const average = Number((result.total / result.count).toFixed(1));
+
+      return average;
+
+    } catch (err) {
+
+      console.error("Review score error", err);
+
+    }
+
+  }
 
   const haversineKm = (
+
     lat1: number,
     lon1: number,
     lat2: number,
     lon2: number
+
   ): number => {
+
     const R = 6371;
+
     const toRad = (v: number) => (v * Math.PI) / 180;
 
     const dLat = toRad(lat2 - lat1);
+
     const dLon = toRad(lon2 - lon1);
 
     const a =
@@ -90,182 +87,185 @@ export default function FindMatches() {
     return 2 * R * Math.asin(Math.sqrt(a));
   };
 
-      const loadData = async () => {
-      try {
+  const loadData = async () => {
 
-        // Selected journey
-        const selectedJourney = await db.getFirstAsync<Journey>(
-          "SELECT * FROM journeys WHERE journeyID = ?",
-          [journeyID]
-        );
-        
+  try {
 
-         if (!selectedJourney) {
+    // Selected journey
+    const selectedJourney = await db.getFirstAsync<Journey>(
+      "SELECT * FROM journeys WHERE journeyID = ?",
+      [journeyID]
+    );
 
-          setJourney(null);
-          setMatches([]);
-          return;
+      if (!selectedJourney) {
+      setJourney(null);
+      setMatches([]);
+      return;
+    }
 
-        }
+    // Radius of acceptable origins/destinations from the users origins/destinations
+    const RADIUS_KM = 5;
 
-        const RADIUS_KM = 5;
+    // Rough bounding box deltas
+    const LAT_DELTA = RADIUS_KM / 111;
+    const LNG_DELTA =
+    RADIUS_KM /
+    (111 * Math.cos(selectedJourney.originLatitude * Math.PI / 180));
 
-        // Rough bounding box deltas
-        const LAT_DELTA = RADIUS_KM / 111;
-        const LNG_DELTA =
-        RADIUS_KM /
-        (111 * Math.cos(selectedJourney.originLatitude * Math.PI / 180));
+    setJourney(selectedJourney);
 
-        setJourney(selectedJourney);
+    const TIME_WINDOW_MINUTES = 30;
 
-        const TIME_WINDOW_MINUTES = 30;
+    // Get matching journeys
+    const results = await db.getAllAsync<Journey & { firstName: string }>(
+    `
+    SELECT
+      j.*,
+      u.firstName
+    FROM journeys j
+    JOIN users u ON u.userID = j.userID
+    WHERE
+      j.userID != ?
+      AND j.date = ?
 
-        // Get matching journeys
-       const results = await db.getAllAsync<Journey & { firstName: string }>(
-        `
-        SELECT
-          j.*,
-          u.firstName
-        FROM journeys j
-        JOIN users u ON u.userID = j.userID
-        WHERE
-          j.userID != ?
-          AND j.date = ?
+      AND j.journeyType = ?
 
-          AND j.journeyType = ?
+      AND u.smokingAllowed = ?
+      AND u.prefersSameGender = ?
+      AND u.role = ?
 
-          AND u.smokingAllowed = ?
-          AND u.prefersSameGender = ?
-          AND u.role = ?
-
-          -- If both require same gender, genders must match
-          AND (
-                ? = 0
-                OR u.gender = ?
-              )
-
-          AND ABS(
-            (
-              CAST(substr(j.departingAt, 1, 2) AS INTEGER) * 60 +
-              CAST(substr(j.departingAt, 4, 2) AS INTEGER)
-            ) -
-            (
-              CAST(substr(?, 1, 2) AS INTEGER) * 60 +
-              CAST(substr(?, 4, 2) AS INTEGER)
-            )
-          ) <= ?
-
-          -- Origin bounding box
-          AND j.originLatitude BETWEEN ? AND ?
-          AND j.originLongitude BETWEEN ? AND ?
-
-          -- Destination bounding box
-          AND j.destinationLatitude BETWEEN ? AND ?
-          AND j.destinationLongitude BETWEEN ? AND ?
-
-          -- Exclude journeys already requested by this user
-          AND NOT EXISTS (
-            SELECT 1
-            FROM requests r
-            WHERE r.journeyID = j.journeyID
-            AND r.requesterID = ?
+      -- If both require same gender, genders must match
+      AND (
+            ? = 0
+            OR u.gender = ?
           )
-        `,
-        [
-          user!.userID,
-          selectedJourney.date,
 
-          "driver",
-
-          // Smoking exact match
-          user!.smokingAllowed,
-
-          // prefersSameGender exact match
-          user!.prefersSameGender,
-
-          // Role exact match
-          user!.role,
-
-          // gender enforcement if prefersSameGender = 1
-          user!.prefersSameGender,
-          user!.gender,
-
-          // Time window
-          selectedJourney.departingAt,
-          selectedJourney.departingAt,
-          TIME_WINDOW_MINUTES,
-
-          // Origin bounding box
-          selectedJourney.originLatitude - LAT_DELTA,
-          selectedJourney.originLatitude + LAT_DELTA,
-          selectedJourney.originLongitude - LNG_DELTA,
-          selectedJourney.originLongitude + LNG_DELTA,
-
-          // Destination bounding box
-          selectedJourney.destinationLatitude - LAT_DELTA,
-          selectedJourney.destinationLatitude + LAT_DELTA,
-          selectedJourney.destinationLongitude - LNG_DELTA,
-          selectedJourney.destinationLongitude + LNG_DELTA,
-
-          user!.userID,
-        ]
-        );
-
-        const enriched = results
-        .map((j) => {
-          const originDistance = haversineKm(
-            selectedJourney.originLatitude,
-            selectedJourney.originLongitude,
-            j.originLatitude,
-            j.originLongitude
-          );
-
-          const destinationDistance = haversineKm(
-            selectedJourney.destinationLatitude,
-            selectedJourney.destinationLongitude,
-            j.destinationLatitude,
-            j.destinationLongitude
-          );
-
-          return {
-            ...j,
-            originDistance,
-            destinationDistance,
-          };
-        })
-        .filter(
-          (j) =>
-            j.originDistance <= RADIUS_KM &&
-            j.destinationDistance <= RADIUS_KM
+      AND ABS(
+        (
+          CAST(substr(j.departingAt, 1, 2) AS INTEGER) * 60 +
+          CAST(substr(j.departingAt, 4, 2) AS INTEGER)
+        ) -
+        (
+          CAST(substr(?, 1, 2) AS INTEGER) * 60 +
+          CAST(substr(?, 4, 2) AS INTEGER)
         )
-        .sort((a, b) => a.originDistance - b.originDistance);
+      ) <= ?
 
-      setMatches(enriched);
+      -- Origin bounding box
+      AND j.originLatitude BETWEEN ? AND ?
+      AND j.originLongitude BETWEEN ? AND ?
 
-      const ratingMap: { [key: number]: number } = {};
+      -- Destination bounding box
+      AND j.destinationLatitude BETWEEN ? AND ?
+      AND j.destinationLongitude BETWEEN ? AND ?
 
-      for (const match of enriched) {
-        const score = await reviewScore(match.userID);
-        ratingMap[match.userID] = score ?? 0;
-      }
+      -- Exclude journeys already requested by this user
+      AND NOT EXISTS (
+        SELECT 1
+        FROM requests r
+        WHERE r.journeyID = j.journeyID
+        AND r.requesterID = ?
+      )
+    `,
+    [
+      user!.userID,
+      selectedJourney.date,
 
-      setRatings(ratingMap);
+      "driver",
 
+      // Smoking exact match
+      user!.smokingAllowed,
 
-      } catch (err) {
-        console.error("Failed to data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      // prefersSameGender exact match
+      user!.prefersSameGender,
 
+      // Role exact match
+      user!.role,
+
+      // gender enforcement if prefersSameGender = 1
+      user!.prefersSameGender,
+      user!.gender,
+
+      // Time window
+      selectedJourney.departingAt,
+      selectedJourney.departingAt,
+      TIME_WINDOW_MINUTES,
+
+      // Origin bounding box
+      selectedJourney.originLatitude - LAT_DELTA,
+      selectedJourney.originLatitude + LAT_DELTA,
+      selectedJourney.originLongitude - LNG_DELTA,
+      selectedJourney.originLongitude + LNG_DELTA,
+
+      // Destination bounding box
+      selectedJourney.destinationLatitude - LAT_DELTA,
+      selectedJourney.destinationLatitude + LAT_DELTA,
+      selectedJourney.destinationLongitude - LNG_DELTA,
+      selectedJourney.destinationLongitude + LNG_DELTA,
+
+      user!.userID,
+    ]
+    );
+
+    const enriched = results
+    .map((j) => {
+      const originDistance = haversineKm(
+        selectedJourney.originLatitude,
+        selectedJourney.originLongitude,
+        j.originLatitude,
+        j.originLongitude
+      );
+
+      const destinationDistance = haversineKm(
+        selectedJourney.destinationLatitude,
+        selectedJourney.destinationLongitude,
+        j.destinationLatitude,
+        j.destinationLongitude
+      );
+
+      return {
+        ...j,
+        originDistance,
+        destinationDistance,
+      };
+    })
+    .filter(
+      (j) =>
+        j.originDistance <= RADIUS_KM &&
+        j.destinationDistance <= RADIUS_KM
+    )
+    .sort((a, b) => a.originDistance - b.originDistance);
+
+    setMatches(enriched);
+
+    const ratingMap: { [key: number]: number } = {};
+
+    for (const match of enriched) {
+      const score = await reviewScore(match.userID);
+      ratingMap[match.userID] = score ?? 0;
+    }
+
+    setRatings(ratingMap);
+
+    } catch (error) {
+
+      console.error("Failed to data", error);
+      
+    } finally {
+
+      setLoading(false);
+
+    }
+  };
 
   useFocusEffect(
-    useCallback(() => {
-    loadData(); // will run every time screen comes into focus
-  }, [journeyID])
-);
 
+      useCallback(() => {
+
+      loadData(); // will run every time screen comes into focus
+      
+    }, [journeyID])
+  );
 
   if (loading) {
     return <ActivityIndicator size="large" />;
@@ -302,24 +302,18 @@ export default function FindMatches() {
               <Text>Date: {match.date}</Text>
 
               <Pressable
-              style={({ pressed }) => [styles.requestButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
-              
-              onPress={ () => 
-                router.push({
-
-                  pathname: "/sendRequest",
-                  params: { journeyID: match.journeyID.toString() },
-
-                })
-              }>
-              
-                {({ pressed }) => (
-                <Text style={[styles.buttonText, pressed && { color: "white" }]}>
-                
-                Send Request</Text>
-                )}
+                style={({ pressed }) => [styles.requestButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+                onPress={ () => 
+                  router.push({
+                    pathname: "/sendRequest",
+                    params: { journeyID: match.journeyID.toString() },
+                  })
+                }>
+                  {({ pressed }) => (
+                  <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                  Send Request</Text>
+                  )}
               </Pressable>
-
             </View>
           ))
         )}
@@ -331,25 +325,20 @@ export default function FindMatches() {
 const styles = StyleSheet.create({
 
     container: {
-
     flex: 1,
     alignItems: "center",
-
   },
 
   title: {
-
     fontSize: 24,
     borderBottomWidth: 2,
     borderColor: "rgba(11, 161, 226, 1)",
-
   },
 
   subtitle: {
     fontSize: 16,
     marginTop: 10,
     marginBottom: 10,
-
   },
 
   journeyCard: {
@@ -357,11 +346,9 @@ const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: "rgba(11, 161, 226, 0.26)",
     borderRadius: 25,
-
   },
 
   backButton: {
-
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(168, 168, 168, 0.2)",
@@ -369,11 +356,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 70,
-
   },
 
   matchResults: {
-
     borderTopWidth: 1,
     borderColor: "rgba(11, 161, 226, 0.2)",
     paddingTop: 20,
@@ -382,33 +367,25 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: 320,
     alignContent: "center",
-
   },
 
   matchCard: {
-    
     marginBottom: 20,
     backgroundColor: "rgb(255, 255, 255)",
     borderRadius: 15,
     padding: 15,
-
   },
 
   emptyText: {
-
     textAlign: "center",
     marginTop: 20,
-
   },
 
-      buttonText: {
-
+  buttonText: {
     color: "rgba(11, 161, 226, 1)",
-
   },
 
   requestButton: {
- 
     marginTop: 10,
     alignItems: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
@@ -416,12 +393,9 @@ const styles = StyleSheet.create({
     padding: 10,
     width: 120,
     marginHorizontal: "auto",
-
   },
 
   requestButtonText: {
- 
     color: "red",
-
   }
 })

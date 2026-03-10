@@ -29,7 +29,6 @@ export default function passengers() {
 
     const loadUsers = async () => {
             
-
         try {
 
             const result = await db.getAllAsync<user>("SELECT u.userID, u.firstName, u.lastName FROM requests r JOIN users u ON u.userID = r.requesterID WHERE r.journeyID = ?", [journeyID]);
@@ -45,14 +44,12 @@ export default function passengers() {
 
     useEffect(() => {
 
-    loadUsers();
+        loadUsers();
 
     }, []);
 
       const review = async (journeyID: number, revieweeID: number) => {
     
-
-
         const alreadyReviewed = await db.getAllAsync (
 
             "SELECT * FROM reviews WHERE journeyID = ? AND reviewerID = ?", [journeyID, user!.userID]
@@ -65,10 +62,6 @@ export default function passengers() {
             return;
 
         }
-
-
-
-
 
         const result = await db.getFirstAsync<journeyDateTimeInfo>(
           "SELECT date, departingAt FROM journeys WHERE journeyID = ?",
@@ -119,7 +112,6 @@ export default function passengers() {
                 keyExtractor={(item) => item.userID.toString()}
                 renderItem={({ item }) => {
 
-                    
                     return (
 
                         <View>
@@ -141,22 +133,13 @@ export default function passengers() {
                             </View>
                         </View>
                     )
-
-
                 }}
                 ListEmptyComponent={<Text>Nothing here for now!</Text>}
             >
-                
-
             </FlatList>
-
         </View>
-
     )
-
 }
-
-
 
 const styles = StyleSheet.create({
 

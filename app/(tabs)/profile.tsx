@@ -273,30 +273,34 @@ useFocusEffect(
           </Text>
         )}
       </Pressable>
-
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     alignItems: "center",
     paddingBottom: 40
   },
+
   form: {
     borderRadius: 10,
     width: 320,
     marginTop: 20
   },
+
   inputGroup: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10
   },
+
   label: {
     width: 90,
     fontWeight: "bold"
   },
+
   input: {
     flex: 1,
     height: 44,
@@ -307,6 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 5
   },
+
   button: {
     alignItems: "center",
     alignSelf: "center",
@@ -332,7 +337,6 @@ const styles = StyleSheet.create({
   },
 
   pickerContainer: {
-
     flex: 1,
     height: 44,
     borderWidth: 1,
@@ -341,7 +345,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     paddingHorizontal: 10,
     borderRadius: 5
-
   },
-
 });
