@@ -150,7 +150,8 @@ export default function AddJourney() {
               <GooglePlacesAutocomplete
                 placeholder=""
                 fetchDetails={true}
-
+                debounce={300}
+                minLength={2}
                 onPress={(data, details) => {
 
                   if(!details) return;
@@ -217,7 +218,8 @@ export default function AddJourney() {
               <GooglePlacesAutocomplete
                 placeholder=""
                 fetchDetails={true}
-
+                debounce={300}
+                minLength={2}
                 onPress={(data, details) => {
 
                   if(!details) return;

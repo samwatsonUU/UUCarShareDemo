@@ -81,7 +81,7 @@ export default function register() {
             // insert data into the database
             await db.runAsync(
 
-                'INSERT INTO users (email, password, firstName, lastName, gender, role, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO users (email, password, firstName, lastName, gender, role, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.canDrive, form.prefersSameGender, form.smokingAllowed]
 
             );

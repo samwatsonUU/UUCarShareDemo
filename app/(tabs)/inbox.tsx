@@ -7,6 +7,8 @@ import { router } from "expo-router";
 
 type Request = {
   requestID: number;
+  requesterID: number;
+  recipientID: number;
   message: string;
   requester?: string;
   recipient?: string;
@@ -25,38 +27,26 @@ export default function Inbox() {
   const [viewMode, setViewMode] = useState<"received" | "sent">("received");
   const [messages, setMessages] = useState<Request[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
 
-  // const cancelRequest = async (requestID: number) => {
+  const reviewScore = async (userID: number) => {
+    try {
+      const result = await db.getFirstAsync<{ total: number; count: number }>(
+        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`,
+        [userID]
+      );
 
-  //   Alert.alert(
-  //     "Confirm Cancellation",
-  //     "Are you sure you want to cancel this request?",
-  //     [
-  //       {
-  //         text: "No",
-  //         style: "cancel",
-  //       },
-  //       {
-  //         text: "Yes",
-  //         style: "destructive",
-  //         onPress: async () => {
-  //           await db.runAsync(
-  //             "DELETE FROM requests WHERE requestID = ?",
-  //             [requestID]
-  //           );
+      if (!result || result.count === 0) return 0;
 
-  //         setMessages(prev =>
-  //           prev.filter(item => item.requestID !== requestID)
-  //         );
+      const average = Number((result.total / result.count).toFixed(1));
 
-  //         Alert.alert("Success", "Request cancelled");
-  //         },
-  //       },
-  //     ],
-  //     { cancelable: true }
-  //   );
+      return average;
 
-  // }
+    } catch (err) {
+      console.error("Review score error", err);
+      return 0;
+    }
+  };
 
   const loadMessages = async () => {
 
@@ -91,6 +81,22 @@ export default function Inbox() {
 
       const results = await db.getAllAsync<Request>(query, [user!.userID, "Pending"]);
       setMessages(results);
+
+      const ratingMap: { [key: number]: number } = {};
+
+      for (const msg of results) {
+        const userID =
+          viewMode === "received"
+            ? msg.requesterID
+            : msg.recipientID;
+
+        const score = await reviewScore(userID);
+        ratingMap[userID] = score ?? 0;
+      }
+
+setRatings(ratingMap);
+
+      
     } catch (error) {
       console.error("Failed to load messages", error);
     } finally {
@@ -154,7 +160,7 @@ export default function Inbox() {
               }
               
             >
-              <Text style={styles.messageHeader}>{item.requester}</Text>
+              <Text style={styles.messageHeader}>{item.requester} ⭐ {ratings[item.requesterID]?.toFixed(1) ?? "0.0"}</Text>
               <Text>Date: {item.date}</Text>
               <Text>Origin: {item.origin}</Text>
               <Text>Destination: {item.destination}</Text>

@@ -86,8 +86,7 @@ export default function RootLayout() {
               reviewerID INTEGER NOT NULL,
               revieweeID INTEGER NOT NULL,
               journeyID INTEGER NOT NULL,
-              rating INTEGER NOT NULL,
-              comment TEXT NOT NULL
+              rating INTEGER NOT NULL
             );
           `);
 
@@ -112,6 +111,8 @@ export default function RootLayout() {
             <Stack.Screen name="findMatches" options={{ headerShown: true, title: 'Matches'  }} />
             <Stack.Screen name="sendRequest" options={{ headerShown: true, title: 'Send a Request'  }} />
             <Stack.Screen name="requestResponse" options={{ headerShown: true, title: 'Respond to a Request'  }} />
+            <Stack.Screen name="review" options={{ headerShown: true, title: 'Leave a Review'  }} />
+            <Stack.Screen name="passengers" options={{ headerShown: true, title: 'Passengers'  }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

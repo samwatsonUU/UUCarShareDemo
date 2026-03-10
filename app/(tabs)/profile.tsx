@@ -24,6 +24,7 @@ export default function Profile() {
   const db = useSQLiteContext();
   const { user, login, logout } = useAuth();
   const navigation = useNavigation();
+  const [rating, setRating] = useState<number>(0);
 
   const logoutUser = () => {
       logout();
@@ -43,6 +44,42 @@ export default function Profile() {
 
   const [initialForm, setInitialForm] = useState<UserForm | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+
+  // ----- Unit test ---- //
+
+  const reviewScore = async (userID: number) => {
+
+    try {
+
+      const result = await db.getFirstAsync<{ total: number, count: number }>(
+        `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
+      );
+
+      if (!result || result.count === 0) return 0;
+
+      const average = Number((result.total / result.count).toFixed(1));
+
+      return average;
+
+    } catch (err) {
+
+      console.error("Review score error", err);
+
+    }
+
+  }
+
+  const loadRating = async () => {
+
+    if (!user?.userID) return;
+
+    const score = await reviewScore(user.userID);
+
+    setRating(score ?? 0);
+
+  };
+
 
   /** --- Load user from DB --- */
   const loadUser = async () => {
@@ -77,13 +114,13 @@ export default function Profile() {
 useFocusEffect(
   useCallback(() => {
     loadUser(); // load when screen is focused
+    loadRating();
   }, [user])
 );
 
 
   /** --- Validate --- */
   const validEmail = (value: string) => /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
-  const validPassword = (value: string) => /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
 
   /** --- Save changes --- */
   const saveChanges = async () => {
@@ -129,6 +166,20 @@ useFocusEffect(
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.form}>
+
+        
+
+
+
+        {/** Rating */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Rating</Text>
+          <Text>⭐ {rating.toFixed(1)}</Text>
+        </View>
+
+
+
+
         {/** Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>

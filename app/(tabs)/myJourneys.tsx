@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { FlatList } from 'react-native';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
@@ -9,7 +9,7 @@ import { useCallback } from 'react';
 import { router } from "expo-router";
 
 
-type Journey = {
+type ownedJourney = {
   journeyID: number;
   userID: string;
   origin: string;
@@ -20,36 +20,138 @@ type Journey = {
   status: string;
 };
 
+type joinedJourney = ownedJourney & {
+
+  requestID: number,
+  requesterID: number,
+  recipientID: number,
+  message: string,
+  firstName: string,
+
+
+}
+
+type journeyDateTimeInfo = {
+
+  date: string,
+  departingAt: string,
+
+}
+
 export default function MyJourneys() {
 
 
-  const [Journeys, setJourneys] = useState<Journey[]>([]);
+  const [Journeys, setJourneys] = useState<(ownedJourney | joinedJourney)[]>([]);
   const [viewMode, setViewMode] = useState<"myJourneys" | "joined">("myJourneys");
   const [isLoading, setIsLoading] = useState(false);
   const db = useSQLiteContext();
   const { user } = useAuth();
 
-  const loadUsers = async () => {
+  const review = async (journeyID: number, revieweeID: number) => {
+
+    const alreadyReviewed = await db.getAllAsync (
+
+      "SELECT * FROM reviews WHERE journeyID = ? AND reviewerID = ?", [journeyID, user!.userID]
+
+    )
+
+    if(alreadyReviewed.length > 0) {
+
+      Alert.alert("Error", "You have already reviewed this driver for this journey.");
+      return;
+
+    }
+
+    const result = await db.getFirstAsync<journeyDateTimeInfo>(
+      "SELECT date, departingAt FROM journeys WHERE journeyID = ?",
+      [journeyID]
+    );
+
+    if (!result) return;
+
+    const now = new Date();
+    // CA (Canadian) format used (YYYY-MM-DD)
+    const today = now.toLocaleDateString("en-CA");
+
+    // convert DB date DD/MM/YYYY -> YYYY-MM-DD
+    const [day, month, year] = result.date.split("/");
+    const dbDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+    // convert times to minutes
+    const [journeyHour, journeyMinute] = result.departingAt.split(":").map(Number);
+    const journeyMinutes = journeyHour * 60 + journeyMinute;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    console.log("DB date:", dbDate);
+    console.log("Today:", today);
+    console.log("Journey minutes:", journeyMinutes);
+    console.log("Current minutes:", currentMinutes);
+
+    if (dbDate > today || (dbDate === today && journeyMinutes > currentMinutes)) {
+      Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
+      return;
+    }
+
+    router.push({
+      pathname: "/review",
+      params: {
+        journeyID: journeyID.toString(),
+        revieweeID: revieweeID.toString(),
+      },
+    });
+
+  };
+
+  const cancelParticipation = (requestID: number) => {
+  
+        Alert.alert(
+          "Confirm Cancellation",
+          "Are you sure you want to stop participating in this journey?",
+          [
+            {
+              text: "No",
+              style: "cancel",
+            },
+            {
+              text: "Yes",
+              style: "destructive",
+              onPress: async () => {
+                await db.runAsync(
+                  "DELETE FROM requests WHERE requestID = ?",
+                  [requestID]
+                );
+  
+                Alert.alert("Success", "Journey cancelled");
+                loadJourneys();
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+        
+      };
+
+  
+  const loadJourneys = async () => {
 
     setIsLoading(true);
 
       try {
 
-        let query = "";
         if (viewMode === "myJourneys") {
-          query = "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]         
+
+          const result = await db.getAllAsync<ownedJourney>("SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]);
+     
+          setJourneys(result);
 
         } else {
 
           // pull journeys where the user has sent a request, and it has been approved
-          // query = "SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]
-          query = "SELECT r.*, j.* FROM requests r JOIN journeys j on r.journeyID = j.journeyID WHERE r.requesterID = ? AND r.status = ?"
+          const result = await db.getAllAsync<joinedJourney>("SELECT r.*, j.*, u.firstName FROM requests r JOIN journeys j on r.journeyID = j.journeyID JOIN users u on u.userID = r.recipientID WHERE r.requesterID = ? AND r.status = ?", [user!.userID, "Approved"]);
+
+          setJourneys(result);
 
         }
-
-        const results = await db.getAllAsync<Journey>(query, [user!.userID, "Approved"]);
-
-          setJourneys(results)
 
       } catch (error) {
 
@@ -65,9 +167,9 @@ export default function MyJourneys() {
 
   useEffect(() => {
 
-      loadUsers();
-
-  }, []);
+    loadJourneys();
+    
+  }, [viewMode]);
 
 
 
@@ -75,7 +177,7 @@ export default function MyJourneys() {
 
     useCallback(() => {
 
-      loadUsers();
+      loadJourneys();
 
     }, [])
 
@@ -118,66 +220,133 @@ export default function MyJourneys() {
             data={Journeys}
             showsVerticalScrollIndicator={false}
             refreshControl={
-                <RefreshControl refreshing={isLoading} onRefresh={loadUsers} tintColor="#007AFF" />
+                <RefreshControl refreshing={isLoading} onRefresh={loadJourneys} tintColor="#007AFF" />
             }
             keyExtractor={(item) => item.journeyID.toString()}
-            renderItem={({ item }) =>
-              
-              // if the user is currently viewing their own added journeys
-              
-              viewMode === "myJourneys" ? (
+            renderItem={({ item }) => {
 
-                <View style={styles.journeyContainer}>
+              if (viewMode === "myJourneys") {
 
-                    <Text>Origin: {item.origin}</Text>
-                    <Text>Destination: {item.destination}</Text>
-                    <Text>Departing At: {item.departingAt}</Text>
-                    <Text>Must Arrive At: {item.mustArriveAt}</Text>
-                    <Text>Date: {item.date}</Text>
+                const journey = item as ownedJourney;
 
-                    <Pressable style={({ pressed }) => [styles.findMatchesButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
+                return (
+                  <View style={styles.journeyContainer}>
 
+                    <Text>Origin: {journey.origin}</Text>
+                    <Text>Destination: {journey.destination}</Text>
+                    <Text>Departing At: {journey.departingAt}</Text>
+                    <Text>Must Arrive At: {journey.mustArriveAt}</Text>
+                    <Text>Date: {journey.date}</Text>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.findMatchesButton,
+                        pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }
+                      ]}
                       onPress={() =>
                         router.push({
                           pathname: "/findMatches",
-                          params: { journeyID: item.journeyID.toString() },
+                          params: { journeyID: journey.journeyID.toString() },
                         })
-                      } 
+                      }
                     >
-
                       {({ pressed }) => (
-                      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Find Matches</Text>
+                        <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                          Find Matches
+                        </Text>
                       )}
                     </Pressable>
 
-                    <Pressable style={({ pressed }) => [styles.editJourneyButton, pressed && { backgroundColor: "rgb(77, 77, 77)"}]}
-                      onPress={ () => 
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.secondaryButton,
+                        pressed && { backgroundColor: "rgb(77, 77, 77)" }
+                      ]}
+                      onPress={() =>
                         router.push({
-
                           pathname: "/editJourney",
-                          params: { journeyID: item.journeyID.toString() },
-
+                          params: { journeyID: journey.journeyID.toString() },
                         })
-                      }>
-
+                      }
+                    >
                       {({ pressed }) => (
-                      <Text style={[styles.buttonText, pressed && { color: "white" }]}>Edit Journey</Text>
+                        <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                          Edit Journey
+                        </Text>
                       )}
                     </Pressable>
 
-                </View>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.secondaryButton,
+                        pressed && { backgroundColor: "rgb(77, 77, 77)" }
+                      ]}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/passengers",
+                          params: { journeyID: journey.journeyID.toString() },
+                        })
+                      }
+                    >
+                      {({ pressed }) => (
+                        <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                          View Passengers
+                        </Text>
+                      )}
+                    </Pressable>
 
-              // else, if the user is currently viewing journeys that they have requested participation in and have been approved for
-              ) : (
+                  </View>
+                );
 
+              } else {
 
-              <Text>AHAHAHA</Text>
+                const journey = item as joinedJourney;
 
+                return (
+                  <View style={styles.journeyContainer}>
 
+                    <Text>Driver: {journey.firstName}</Text>
+                    <Text>Origin: {journey.origin}</Text>
+                    <Text>Destination: {journey.destination}</Text>
+                    <Text>Departing At: {journey.departingAt}</Text>
+                    <Text>Must Arrive At: {journey.mustArriveAt}</Text>
+                    <Text>Date: {journey.date}</Text>
 
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.findMatchesButton,
+                        pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }
+                      ]}
+                      onPress={() => review(journey.journeyID, journey.recipientID)}
+                    >
+                      {({ pressed }) => (
+                        <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                          Review Driver
+                        </Text>
+                      )}
+                    </Pressable>
 
-            )}
-            ListEmptyComponent={<Text>You haven't added any journeys yet, go to "Add A Journey" to start carpooling!</Text>}
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.secondaryButton,
+                        pressed && { backgroundColor: "rgb(77, 77, 77)" }
+                      ]}
+                      onPress={() => cancelParticipation(journey.requestID)}
+                    >
+                      {({ pressed }) => (
+                        <Text style={[styles.buttonText, pressed && { color: "white" }]}>
+                          Cancel
+                        </Text>
+                      )}
+                    </Pressable>
+
+                  </View>
+                );
+
+              }
+
+            }}
+            ListEmptyComponent={<Text>Nothing here for now!</Text>}
         />
 
     </View>
@@ -223,19 +392,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(11, 161, 226, 0.2)",
-    width: 120,
+    width: 140,
     borderRadius: 5,
     padding: 10,
     
   },
 
-  editJourneyButton: {
+  secondaryButton: {
 
     marginTop: 10,
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: "rgba(124, 124, 124, 0.2)",
-    width: 120,
+    width: 140,
     borderRadius: 5,
     padding: 10,
     
@@ -246,8 +415,6 @@ const styles = StyleSheet.create({
     color: "rgba(11, 161, 226, 1)",
 
   },
-
-
 
   toggleContainer: { flexDirection: "row", marginTop: 15, marginBottom: 10, backgroundColor: "#E6F4FA", borderRadius: 25, padding: 4 },
   toggleButton: { paddingVertical: 8, paddingHorizontal: 24, borderRadius: 20 },

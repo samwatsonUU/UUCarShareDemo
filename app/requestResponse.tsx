@@ -209,12 +209,16 @@ if (result2) {
             </View>
 
             <Pressable
+                style={({ pressed }) => [styles.approveButton, pressed && { backgroundColor: "rgba(14, 237, 92, 0.97)"}]}
                 onPress={approve}
-            ><Text>Approve Request</Text></Pressable>
+            >{({ pressed }) => (
+            <Text style={[styles.buttonText, pressed && { color: "white" }]}>Approve Request</Text>)}</Pressable>
+
             <Pressable
+                style={({ pressed }) => [styles.denyButton, pressed && { backgroundColor: "rgb(255, 0, 0)"}]}
                 onPress={deny}
-            ><Text>Deny Request</Text></Pressable>
-        
+            >{({ pressed }) => (
+            <Text style={[styles.buttonText, pressed && { color: "white" }]}>Deny Request</Text>)}</Pressable>                
         </View>
 
 
@@ -271,6 +275,30 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 12,
     color: "rgba(0,0,0,0.6)",
+    },
+
+    denyButton: {
+        alignItems: "center",
+        alignSelf: "center",
+        backgroundColor: "rgba(201, 24, 24, 0.55)",
+        width: 180,
+        borderRadius: 5,
+        padding: 10,
+        marginBottom: 20,
+    },
+
+    buttonText: {
+        color: "rgb(0, 0, 0)",
+    },
+
+    approveButton: {
+        alignItems: "center",
+        alignSelf: "center",
+        backgroundColor: "rgba(24, 201, 24, 0.55)",
+        width: 180,
+        borderRadius: 5,
+        padding: 10,
+        marginBottom: 20,
     },
 
 })

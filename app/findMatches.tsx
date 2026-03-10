@@ -37,10 +37,37 @@ export default function FindMatches() {
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const db = useSQLiteContext();
   const { user } = useAuth();
-
+  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
   const [journey, setJourney] = useState<Journey | null>(null);
   const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ----- Unit test ---- //
+    
+      const reviewScore = async (userID: number) => {
+    
+        try {
+    
+          const result = await db.getFirstAsync<{ total: number, count: number }>(
+            `SELECT SUM(rating) as total, COUNT(*) as count FROM reviews WHERE revieweeID = ?`, [userID]
+          );
+    
+          if (!result || result.count === 0) return 0;
+    
+          const average = Number((result.total / result.count).toFixed(1));
+    
+          return average;
+    
+        } catch (err) {
+    
+          console.error("Review score error", err);
+    
+        }
+    
+      }
+
+
+
 
   const haversineKm = (
     lat1: number,
@@ -215,6 +242,15 @@ export default function FindMatches() {
 
       setMatches(enriched);
 
+      const ratingMap: { [key: number]: number } = {};
+
+      for (const match of enriched) {
+        const score = await reviewScore(match.userID);
+        ratingMap[match.userID] = score ?? 0;
+      }
+
+      setRatings(ratingMap);
+
 
       } catch (err) {
         console.error("Failed to data", err);
@@ -257,7 +293,7 @@ export default function FindMatches() {
         ) : (
           matches.map((match) => (
             <View key={match.journeyID} style={styles.matchCard}>
-              <Text>Driver: {match.firstName}</Text>
+              <Text>Driver: {match.firstName} ⭐ {ratings[match.userID]?.toFixed(1) ?? "0.0"}</Text>
               <Text>Origin: {match.origin}</Text>
               <Text>Origin Distance: {match.originDistance.toFixed(2)} km</Text>
               <Text>Destination: {match.destination}</Text>

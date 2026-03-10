@@ -76,7 +76,7 @@ export default function editJourney() {
             destinationLongitude = ?, 
             departingAt = ?, 
             mustArriveAt = ?, 
-            date = ?, 
+            date = ? 
         WHERE journeyID = ?`,
         [
           form.origin,
@@ -226,7 +226,8 @@ export default function editJourney() {
                     <GooglePlacesAutocomplete
                       placeholder="E.g. Eglinton"
                       fetchDetails={true}
-
+                      debounce={300}
+                      minLength={2}
                       onPress={(data, details) => {
 
                         if(!details) return;
@@ -286,7 +287,8 @@ export default function editJourney() {
                   <GooglePlacesAutocomplete
                     placeholder="E.g. Magee"
                     fetchDetails={true}
-
+                    debounce={300}
+                    minLength={2}
                     onPress={(data, details) => {
 
 
