@@ -23,7 +23,6 @@ export type AuthUser = {
   password: string;
   gender: string;
   role: string;
-  bio: string;
   canDrive: number;
   prefersSameGender: number;
   smokingAllowed: number;

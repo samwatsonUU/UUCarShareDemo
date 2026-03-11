@@ -6,22 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
 import { useFocusEffect } from '@react-navigation/native';
 import { getUserReviewScore } from "@/services/reviewService";
-
-type Journey = {
-  journeyID: number;
-  userID: number;
-  origin: string;
-  originLatitude: number,
-  originLongitude: number,
-  destination: string,
-  destinationLatitude: number,
-  destinationLongitude: number,
-  departingAt: string;
-  mustArriveAt: string;
-  date: string;
-  status: string;
-  journeyType: string;
-};
+import { getJourneyById } from "@/services/journeyService";
+import type { Journey } from "@/services/journeyService";
+import { haversineKm } from "@/utils/geoUtils";
 
 type JourneyWithUserAndDistance = Journey & {
   firstName: string;
@@ -35,46 +22,18 @@ export default function FindMatches() {
   const { user } = useAuth();
 
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
-  const [ratings, setRatings] = useState<{ [key: number]: number }>({});
+  const numericJourneyID = Number(journeyID);
+  const [ratings, setRatings] = useState<Record<number, number>>({});
   const [journey, setJourney] = useState<Journey | null>(null);
   const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const haversineKm = (
-
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-
-  ): number => {
-
-    const R = 6371;
-
-    const toRad = (v: number) => (v * Math.PI) / 180;
-
-    const dLat = toRad(lat2 - lat1);
-
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-
-    return 2 * R * Math.asin(Math.sqrt(a));
-  };
 
   const loadData = async () => {
 
   try {
 
     // Selected journey
-    const selectedJourney = await db.getFirstAsync<Journey>(
-      "SELECT * FROM journeys WHERE journeyID = ?",
-      [journeyID]
-    );
+    const selectedJourney = await getJourneyById(db, numericJourneyID);
 
       if (!selectedJourney) {
       setJourney(null);

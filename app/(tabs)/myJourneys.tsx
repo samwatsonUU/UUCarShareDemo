@@ -10,36 +10,15 @@ import { router } from "expo-router";
 import { hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
 import { hasJourneyOccurred } from "@/utils/journeyUtils";
 import { cancelRequest } from "@/services/requestService";
-
-type ownedJourney = {
-
-  journeyID: number;
-  userID: string;
-  origin: string;
-  destination: string;
-  departingAt: string;
-  mustArriveAt: string;
-  date: string;
-  status: string;
-
-};
-
-type joinedJourney = ownedJourney & {
-
-  requestID: number,
-  requesterID: number,
-  recipientID: number,
-  message: string,
-  firstName: string,
-
-}
+import { getOwnedJourneys, getJoinedJourneys } from "@/services/journeyService";
+import type { OwnedJourney, JoinedJourney } from "@/services/journeyService";
 
 export default function MyJourneys() {
 
   const db = useSQLiteContext();
   const { user } = useAuth();
 
-  const [Journeys, setJourneys] = useState<(ownedJourney | joinedJourney)[]>([]);
+const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
   const [viewMode, setViewMode] = useState<"myJourneys" | "joined">("myJourneys");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -109,32 +88,29 @@ export default function MyJourneys() {
 
     setIsLoading(true);
 
-      try {
+    try {
 
-        if (viewMode === "myJourneys") {
+      if (viewMode === "myJourneys") {
 
-          const result = await db.getAllAsync<ownedJourney>("SELECT * FROM journeys WHERE userID = ? ORDER BY journeyID DESC", [user!.userID]);
-     
-          setJourneys(result);
+        const result = await getOwnedJourneys(db, user!.userID);
+        setJourneys(result);
 
-        } else {
+      } else {
 
-          // pull journeys where the user has sent a request, and it has been approved
-          const result = await db.getAllAsync<joinedJourney>("SELECT r.*, j.*, u.firstName FROM requests r JOIN journeys j on r.journeyID = j.journeyID JOIN users u on u.userID = r.recipientID WHERE r.requesterID = ? AND r.status = ?", [user!.userID, "Approved"]);
-
-          setJourneys(result);
-
-        }
-
-      } catch (error) {
-
-          console.error("Database error", error);
-
-      } finally {
-
-          setIsLoading(false);
+        const result = await getJoinedJourneys(db, user!.userID);
+        setJourneys(result);
 
       }
+
+    } catch (error) {
+
+      console.error("Database error", error);
+
+    } finally {
+
+      setIsLoading(false);
+
+    }
 
   };
 
@@ -200,7 +176,7 @@ export default function MyJourneys() {
 
               if (viewMode === "myJourneys") {
 
-                const journey = item as ownedJourney;
+                const journey = item as OwnedJourney;
 
                 return (
                   <View style={styles.journeyContainer}>
@@ -273,7 +249,7 @@ export default function MyJourneys() {
 
               } else {
 
-                const journey = item as joinedJourney;
+                const journey = item as JoinedJourney;
 
                 return (
                   <View style={styles.journeyContainer}>

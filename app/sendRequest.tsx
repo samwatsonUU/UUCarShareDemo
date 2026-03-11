@@ -5,29 +5,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
 import { createRequest } from "@/services/requestService";
-
-type Journey = {
-
-  journeyID: number;
-  userID: number;
-  origin: string;
-  originLatitude: number,
-  originLongitude: number,
-  destination: string,
-  destinationLatitude: number,
-  destinationLongitude: number,
-  departingAt: string;
-  mustArriveAt: string;
-  date: string;
-  status: string;
-
-};
-
-type JourneyWithUser = Journey & {
-
-  firstName: string;
-
-};
+import { getJourneyWithDriverName } from "@/services/journeyService";
+import type { JourneyWithDriverName } from "@/services/journeyService";
 
 export default function SendRequest() {
 
@@ -35,7 +14,7 @@ export default function SendRequest() {
     const { user } = useAuth();
 
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
-    const [journey, setJourney] = useState<JourneyWithUser | null>(null);
+    const [journey, setJourney] = useState<JourneyWithDriverName | null>(null);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
@@ -45,15 +24,8 @@ export default function SendRequest() {
             try {
     
                 // Selected journey
-                const selectedJourney = await db.getFirstAsync<JourneyWithUser>(
-                // "SELECT * FROM journeys WHERE journeyID = ?",
-
-                " SELECT j.*, u.firstName FROM journeys j JOIN users u ON u.userID = j.userID WHERE journeyID = ?",
-
-                [journeyID]
-                );
-            
-    
+                const selectedJourney = await getJourneyWithDriverName(db, Number(journeyID));
+                    
                 if (!selectedJourney) {
     
                     setJourney(null);

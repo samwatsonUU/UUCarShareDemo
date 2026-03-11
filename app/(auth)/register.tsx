@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { Picker } from '@react-native-picker/picker';  
+import { emailExists, createUser } from "@/services/userService";
 
-export default function register() { 
+export default function Register() {
 
   const[form, setForm] = useState({
 
@@ -36,87 +37,77 @@ export default function register() {
 
   }
 
-  const emailInUse = async (email: string): Promise<boolean> => {
-
-    const rows = await db.getAllAsync(
-
-    'SELECT 1 FROM users WHERE email = ? LIMIT 1', form.email
-    
-    );
-
-    return rows.length > 0;
-
-  };
-
   const [showPassword, setShowPassword] = useState(false)
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
+  try {
+    const email = form.email.trim();
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
 
-    try {
-
-      // ensure no inputs are empty
-      if(!form.email || !form.password || !form.confirmPassword || !form.firstName || !form.lastName || !form.gender || !form.role ) {
-
-        throw new Error('All fields are required');
-          
-      } else if (await emailInUse(form.email)) {         
-
-        throw new Error("Email provided is already in use - use \"Reset Password\" instead.");
-
-      } else if (!validEmail(form.email)) {
-
-        throw new Error("Email must end with @ulster.ac.uk");
-
-      } else if (!validPassword(form.password)) {
-
-        throw new Error("Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character");
-
-      } else if (form.password != form.confirmPassword) {
-
-        throw new Error('Passwords do not match');
-
-      }
-
-      // insert data into the database
-      await db.runAsync(
-
-          'INSERT INTO users (email, password, firstName, lastName, gender, role, canDrive, prefersSameGender, smokingAllowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [form.email, form.password, form.firstName, form.lastName, form.gender, form.role, form.canDrive, form.prefersSameGender, form.smokingAllowed]
-
-      );
-
-      const rows = await db.getAllAsync('SELECT * FROM users');
-      console.log('USERS TABLE CONTENTS:', JSON.stringify(rows, null, 2));
-      
-      Alert.alert(
-        'Success',
-        `You have been registered successfully, ${form.firstName}!`
-      );
-
-      setForm({
-
-        email: '',
-        password: '',
-        confirmPassword: '',
-        firstName: '',
-        lastName: '',
-        gender: '',
-        role: '',
-        canDrive: false,
-        prefersSameGender: false,
-        smokingAllowed: false,
-
-      });
-      
-    } catch (error: unknown) {
-
-      console.error(error);
-
-      const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
-
-      Alert.alert('Error', message);
+    if (!email || !form.password || !form.confirmPassword || !firstName || !lastName || !form.gender || !form.role) {
+      throw new Error("All fields are required");
     }
-  };
+
+    if (await emailExists(db, email)) {
+      throw new Error('Email provided is already in use - use "Reset Password" instead.');
+    }
+
+    if (!validEmail(email)) {
+      throw new Error("Email must end with @ulster.ac.uk");
+    }
+
+    if (!validPassword(form.password)) {
+      throw new Error(
+        "Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character"
+      );
+    }
+
+    if (form.password !== form.confirmPassword) {
+      throw new Error("Passwords do not match");
+    }
+
+    await createUser(db, {
+      email,
+      password: form.password,
+      firstName,
+      lastName,
+      gender: form.gender,
+      role: form.role,
+      canDrive: Number(form.canDrive),
+      prefersSameGender: Number(form.prefersSameGender),
+      smokingAllowed: Number(form.smokingAllowed),
+    });
+
+    Alert.alert(
+      "Success",
+      `You have been registered successfully, ${firstName}!`
+    );
+
+    setForm({
+      email: "",
+      password: "",
+      confirmPassword: "",
+      firstName: "",
+      lastName: "",
+      gender: "",
+      role: "",
+      canDrive: false,
+      prefersSameGender: false,
+      smokingAllowed: false,
+    });
+
+  } catch (error: unknown) {
+    console.error(error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "An error occurred while registering the user.";
+
+    Alert.alert("Error", message);
+  }
+};
 
   const returnToMenu = async () => { router.replace("/(auth)/login") }
 

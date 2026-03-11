@@ -18,24 +18,9 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
+import { authenticateUser } from "@/services/userService";
 
-type UserRow = {
-
-  userID: number;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  gender: string;
-  role: string;
-  bio: string;
-  canDrive: number;
-  prefersSameGender: number;
-  smokingAllowed: number;
-  
-};
-
-export default function login() { 
+export default function Login() { 
 
   const { login } = useAuth();
 
@@ -43,7 +28,7 @@ export default function login() {
 
   const db = useSQLiteContext();
 
-  const register = async () => { router.replace("/(auth)/register") }
+  const register = () => { router.replace("/(auth)/register") }
 
   const[form, setForm] = useState({
 
@@ -65,7 +50,7 @@ export default function login() {
     } 
 
     // Alternatively, if values have been provided, attempt retrieval from DB
-    const user = await db.getFirstAsync<UserRow>(`SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND password = ?`, [form.email, form.password]);
+    const user = await authenticateUser(db, form.email.trim(), form.password);
 
     // If after retrieval attempt user is null, display alert saying user not found and return
     if(!user) {
@@ -76,21 +61,7 @@ export default function login() {
     }
 
     // Alternatively, if a user has been found, set thier details in AuthContext as the retrieved details from the DB
-    login({
-
-      userID: user.userID,
-      email: user.email,
-      password: user.password,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      gender: user.gender,
-      role: user.role,
-      bio: user.bio,
-      canDrive: user.canDrive,
-      prefersSameGender: user.prefersSameGender,
-      smokingAllowed: user.smokingAllowed,
-
-    });
+    login(user);
 
     // Finally, navigate the user to the myJourneys.tsx page
     router.replace('/(tabs)/myJourneys');
@@ -99,7 +70,7 @@ export default function login() {
 
       console.error(error);
 
-      const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
+      const message = error instanceof Error ? error.message: 'An error occurred while logging in.';
 
       Alert.alert('Error', message);
 

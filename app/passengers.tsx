@@ -6,43 +6,39 @@ import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { getUserReviewScore, hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
 import { hasJourneyOccurred } from "@/utils/journeyUtils";
+import { getPassengersForJourney } from "@/services/journeyService";
+import type { Passenger } from "@/services/journeyService";
 
-type user = {
-  userID: number,
-  firstName: string,
-  lastName: string,
+type PassengerWithReviewScore = Passenger & {
   reviewScore: number,
 }
 
-export default function passengers() {
+export default function Passengers() {
 
     const db = useSQLiteContext();
-    const [Users, setUsers] = useState<(user)[]>([]); 
+    const [Users, setUsers] = useState<PassengerWithReviewScore[]>([]);
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
     const { user } = useAuth();
 
     const loadUsers = async () => {
-    try {
-        const result = await db.getAllAsync<Omit<user, "reviewScore">>(
-        "SELECT u.userID, u.firstName, u.lastName FROM requests r JOIN users u ON u.userID = r.requesterID WHERE r.journeyID = ?",
-        [journeyID]
-        );
+        try {
+            const result = await getPassengersForJourney(db, Number(journeyID));
 
-        const usersWithScores: user[] = await Promise.all(
-        result.map(async (item) => {
-            const reviewScore = await getUserReviewScore(db, item.userID);
+            const usersWithScores: PassengerWithReviewScore[] = await Promise.all(
+            result.map(async (item) => {
+                const reviewScore = await getUserReviewScore(db, item.userID);
 
-            return {
-            ...item,
-            reviewScore,
-            };
-        })
-        );
+                return {
+                ...item,
+                reviewScore,
+                };
+            })
+            );
 
-        setUsers(usersWithScores);
-    } catch (error) {
-        console.error("Database error", error);
-    }
+            setUsers(usersWithScores);
+        } catch (error) {
+            console.error("Database error", error);
+        }
     };
 
     useEffect(() => {

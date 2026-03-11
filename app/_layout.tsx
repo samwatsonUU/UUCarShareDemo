@@ -29,7 +29,6 @@ export default function RootLayout() {
             lastName TEXT NOT NULL,
             gender TEXT NOT NULL,
             role TEXT NOT NULL,
-            bio TEXT,
             canDrive INTEGER NOT NULL,
             prefersSameGender INTEGER NOT NULL,
             smokingAllowed INTEGER NOT NULL

@@ -2,12 +2,12 @@ import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 
 import { useAuth } from "@/context/AuthContext";
 import { useState, useCallback } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { router, useNavigation } from "expo-router";
+import { router } from "expo-router";
 import { Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import type { AuthUser } from "@/context/AuthContext";
 import { Picker } from '@react-native-picker/picker';  
 import { getUserReviewScore } from "@/services/reviewService";
+import { getUserById, updateUserProfile } from "@/services/userService";
 
 type UserForm = {
   email: string,
@@ -42,7 +42,6 @@ export default function Profile() {
     smokingAllowed: false
   });
 
-  const [initialForm, setInitialForm] = useState<UserForm | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadRating = async () => {
@@ -58,26 +57,26 @@ export default function Profile() {
   /** --- Load user from DB --- */
   const loadUser = async () => {
     if (!user?.userID) return;
+
     try {
       setIsLoading(true);
-      const results = await db.getAllAsync<AuthUser>(
-        "SELECT * FROM Users WHERE userID = ?", [user.userID]
-      );
-      if (results.length > 0) {
-        const u = results[0];
-        const userForm: UserForm = {
-          email: u.email ?? '',
-          firstName: u.firstName ?? '',
-          lastName: u.lastName ?? '',
-          gender: u.gender ?? '',
-          role: u.role ?? '',
-          canDrive: u.canDrive === 1,
-          prefersSameGender: u.prefersSameGender === 1,
-          smokingAllowed: u.smokingAllowed === 1
-        };
-        setForm(userForm);
-        setInitialForm(userForm); // keep a copy for change detection
-      }
+
+      const loadedUser = await getUserById(db, user.userID);
+
+      if (!loadedUser) return;
+
+      const userForm: UserForm = {
+        email: loadedUser.email ?? '',
+        firstName: loadedUser.firstName ?? '',
+        lastName: loadedUser.lastName ?? '',
+        gender: loadedUser.gender ?? '',
+        role: loadedUser.role ?? '',
+        canDrive: loadedUser.canDrive === 1,
+        prefersSameGender: loadedUser.prefersSameGender === 1,
+        smokingAllowed: loadedUser.smokingAllowed === 1
+      };
+
+      setForm(userForm);
     } catch (err) {
       console.error("Database error", err);
     } finally {
@@ -98,42 +97,43 @@ useFocusEffect(
 
   /** --- Save changes --- */
   const saveChanges = async () => {
+    if (!user?.userID) return;
+
     try {
-      if (!form.email || !form.firstName || !form.lastName || !form.gender || !form.role) {
-        throw new Error('No fields can be empty.');
-      } else if (!validEmail(form.email)) {
+      const email = form.email.trim();
+      const firstName = form.firstName.trim();
+      const lastName = form.lastName.trim();
+
+      if (!email || !firstName || !lastName || !form.gender || !form.role) {
+        throw new Error("No fields can be empty.");
+      }
+
+      if (!validEmail(email)) {
         throw new Error("Email must end with @ulster.ac.uk");
-      } 
+      }
 
-      await db.runAsync(
-        'UPDATE users SET email = ?, firstName = ?, lastName = ?, gender = ?, role = ?, canDrive = ?, prefersSameGender = ?, smokingAllowed = ? WHERE userID = ?',
-        [
-          form.email,
-          form.firstName,
-          form.lastName,
-          form.gender,
-          form.role,
-          form.canDrive ? 1 : 0,
-          form.prefersSameGender ? 1 : 0,
-          form.smokingAllowed ? 1 : 0,
-          user!.userID
-        ]
-      );
+      await updateUserProfile(db, user.userID, {
+        email,
+        firstName,
+        lastName,
+        gender: form.gender,
+        role: form.role,
+        canDrive: Number(form.canDrive),
+        prefersSameGender: Number(form.prefersSameGender),
+        smokingAllowed: Number(form.smokingAllowed),
+      });
 
-      const updatedUser = await db.getFirstAsync<AuthUser>(
-        'SELECT * FROM users WHERE userID = ?',
-        [user!.userID]
-      );
+      const updatedUser = await getUserById(db, user.userID);
 
       if (updatedUser) {
-        login(updatedUser); // refresh AuthContext
+        login(updatedUser);
         Alert.alert("Success", "Changes Saved!");
-        loadUser(); // reload and reset initialForm
+        loadUser();
       }
 
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'An error occurred.';
-      Alert.alert('Error', message);
+      const message = error instanceof Error ? error.message : "An error occurred.";
+      Alert.alert("Error", message);
     }
   };
 
