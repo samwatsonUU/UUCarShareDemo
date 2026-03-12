@@ -1,3 +1,16 @@
+
+/*
+
+  Layout config for the main "home" area of the app
+
+  This consists of links to four screens, myJourneys.tsx (the default screen when a user logs in),
+  addJourney.tsx, inbox.tsx and profile.tsx
+
+  Having all four of these easily accessible via the bottom navigation tab allows
+  the user to move quickly between the main areas of the app
+
+*/
+
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { HapticTab } from '@/components/haptic-tab';
@@ -7,13 +20,17 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
 
+  // Detect the current theme of the device and apply the correct colour scheme
   const colorScheme = useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
+        // Colour of the currently selected (highlighted) tab
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        // Show the header tabs for each screen by default
         headerShown: true,
+        
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen

@@ -1,3 +1,16 @@
+
+/*
+
+  User profile page and management screen
+
+  This screen loads the current logged-in user's information and displays it
+
+  It also allows the user to make changes and save them on the fly
+
+  It is from here that the user can log out of thier account
+
+*/
+
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput, Alert } from 'react-native';
 import { useAuth } from "@/context/AuthContext";
 import { useState, useCallback } from "react";
@@ -22,15 +35,22 @@ type UserForm = {
 
 export default function Profile() {
 
+  // Shared DB connection
   const db = useSQLiteContext();
+
+  // Current user plus login and logout options from AuthContext
   const { user, login, logout } = useAuth();
+
+  // Stores the users rating score for display
   const [rating, setRating] = useState<number>(0);
 
+  // Function that ends the user's current session and sends them back to the login screen
   const logoutUser = () => {
       logout();
       router.replace('/(auth)/login');
     }
 
+  // Form with fields containing the user's information
   const [form, setForm] = useState<UserForm>({
     email: '',
     firstName: '',
@@ -42,8 +62,10 @@ export default function Profile() {
     smokingAllowed: false
   });
 
+  // Used to determine if the user's data has loaded from the DB
   const [isLoading, setIsLoading] = useState(false);
 
+  // Function to load the user's average rating from the reviews table
   const loadRating = async () => {
 
     if (!user?.userID) return;
@@ -54,7 +76,7 @@ export default function Profile() {
 
   };
 
-  /** --- Load user from DB --- */
+  // Load the users details from the DB and map them to the form's fields
   const loadUser = async () => {
     if (!user?.userID) return;
 
@@ -84,18 +106,19 @@ export default function Profile() {
     }
   };
 
-useFocusEffect(
-  useCallback(() => {
-    loadUser(); // load when screen is focused
-    loadRating();
-  }, [user])
-);
+  // Refresh profile details and rating whenever the screen becomes active again
+  useFocusEffect(
+    useCallback(() => {
+      loadUser(); // load when screen is focused
+      loadRating();
+    }, [user])
+  );
 
 
-  /** --- Validate --- */
+  // Restrict profile email updates to Ulster University email addresses
   const validEmail = (value: string) => /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
 
-  /** --- Save changes --- */
+  // Validate and save the edited profile details back to the database
   const saveChanges = async () => {
     if (!user?.userID) return;
 
@@ -104,14 +127,17 @@ useFocusEffect(
       const firstName = form.firstName.trim();
       const lastName = form.lastName.trim();
 
+       // Prevent incomplete profile updates
       if (!email || !firstName || !lastName || !form.gender || !form.role) {
         throw new Error("No fields can be empty.");
       }
 
+      // Email must end in @ulster.ac.uk
       if (!validEmail(email)) {
         throw new Error("Email must end with @ulster.ac.uk");
       }
 
+      // Persist the updated profile values to the database
       await updateUserProfile(db, user.userID, {
         email,
         firstName,
@@ -126,6 +152,7 @@ useFocusEffect(
       const updatedUser = await getUserById(db, user.userID);
 
       if (updatedUser) {
+        // Update AuthContext so the session reflects user's new details
         login(updatedUser);
         Alert.alert("Success", "Changes Saved!");
         loadUser();

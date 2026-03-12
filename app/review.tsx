@@ -5,6 +5,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { useLocalSearchParams } from "expo-router";
 import { router } from "expo-router";
+import { addReview } from "@/services/reviewService";
 
 export default function Review() {
 
@@ -18,24 +19,18 @@ export default function Review() {
 
     const [rating, setRating] = useState(0);
 
-    const addReview = async () => {
+    const addReviewHandler = async () => {
 
-        await db.runAsync(
+    await addReview(
+        db,
+        user!.userID,
+        Number(revieweeID),
+        Number(journeyID),
+        rating
+    );
 
-            'INSERT INTO reviews (reviewerID, revieweeID, journeyID, rating) VALUES (?, ?, ?, ?)',
-            [
-                user!.userID,
-                Number(revieweeID),
-                Number(journeyID),
-                rating
-            ]
-        )
-
-        const rows = await db.getAllAsync('SELECT * FROM reviews');
-        console.log('! -- REVIEWS -- ! TABLE CONTENTS:', JSON.stringify(rows, null, 2));
-
-        Alert.alert("Success", "Review Submitted!");
-        router.replace("/(tabs)/myJourneys");
+    Alert.alert("Success", "Review Submitted!");
+    router.replace("/(tabs)/myJourneys");
     }
 
     return (
@@ -77,7 +72,7 @@ export default function Review() {
                     styles.submitButton,
                     pressed && { backgroundColor: "rgba(11, 161, 226, 1)" }
                 ]}
-                onPress={addReview}
+                onPress={addReviewHandler}
             >
 
                 <Text>Submit Review</Text>

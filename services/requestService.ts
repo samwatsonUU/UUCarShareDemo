@@ -1,5 +1,23 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
+export type InboxRequest = {
+  requestID: number;
+  requesterID: number;
+  recipientID: number;
+  message: string;
+  requester?: string;
+  recipient?: string;
+  origin?: string;
+  destination?: string;
+  date: string;
+  departingAt: string;
+  mustArriveAt: string;
+  status: string;
+};
+
+/**
+ * Create a new journey request.
+ */
 export async function createRequest(
   db: SQLiteDatabase,
   requesterID: number,
@@ -13,6 +31,9 @@ export async function createRequest(
   );
 }
 
+/**
+ * Approve a pending request.
+ */
 export async function approveRequest(
   db: SQLiteDatabase,
   requestID: number
@@ -23,6 +44,9 @@ export async function approveRequest(
   );
 }
 
+/**
+ * Deny a pending request.
+ */
 export async function denyRequest(
   db: SQLiteDatabase,
   requestID: number
@@ -33,6 +57,9 @@ export async function denyRequest(
   );
 }
 
+/**
+ * Cancel (delete) a request.
+ */
 export async function cancelRequest(
   db: SQLiteDatabase,
   requestID: number
@@ -40,5 +67,47 @@ export async function cancelRequest(
   await db.runAsync(
     "DELETE FROM requests WHERE requestID = ?",
     [requestID]
+  );
+}
+
+/**
+ * Get requests received by the current user.
+ * These are pending requests from other users asking to join their journey.
+ */
+export async function getReceivedRequests(
+  db: SQLiteDatabase,
+  userID: number
+): Promise<InboxRequest[]> {
+  return await db.getAllAsync<InboxRequest>(
+    `SELECT r.*,
+            j.*,
+            u.firstName AS requester
+     FROM requests r
+     JOIN journeys j ON r.journeyID = j.journeyID
+     JOIN users u ON r.requesterID = u.userID
+     WHERE r.recipientID = ?
+     AND r.status = ?
+     ORDER BY r.requestID DESC`,
+    [userID, "Pending"]
+  );
+}
+
+/**
+ * Get requests sent by the current user.
+ */
+export async function getSentRequests(
+  db: SQLiteDatabase,
+  userID: number
+): Promise<InboxRequest[]> {
+  return await db.getAllAsync<InboxRequest>(
+    `SELECT r.*,
+            j.*,
+            u.firstName AS recipient
+     FROM requests r
+     JOIN journeys j ON r.journeyID = j.journeyID
+     JOIN users u ON r.recipientID = u.userID
+     WHERE r.requesterID = ?
+     ORDER BY r.requestID DESC`,
+    [userID]
   );
 }

@@ -1,3 +1,21 @@
+
+/*
+
+  Screen to facilitate journey management
+
+  This screen displays the user's created journeys and any journeys they have requested and
+  been approved to join as a participating passenger
+
+  The user is able to toggle between viewing created journeys and joined journeys using a
+  toggle
+
+  For thier created journeys, users have options to find matches, edit the journey, and
+  view any passengers that they have approved for their journey
+
+  For joined journies, users have the option to cancel or review their driver
+
+*/
+
 import { StyleSheet, Text, View, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { FlatList } from 'react-native';
 import { useEffect, useState } from "react";
@@ -15,13 +33,24 @@ import type { OwnedJourney, JoinedJourney } from "@/services/journeyService";
 
 export default function MyJourneys() {
 
+  // Shared DB connection
   const db = useSQLiteContext();
+
+  // Current logged-in user
   const { user } = useAuth();
 
-const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
+  // Represents the list of journeys currently shown to the user
+  // Could either be the user's created journeys (owned journeys)
+  // or journeys they have joined (joined journeys)
+  const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
+
+  // Controls wether the user sees owned journeys or joined journeys
   const [viewMode, setViewMode] = useState<"myJourneys" | "joined">("myJourneys");
+
   const [isLoading, setIsLoading] = useState(false);
 
+  // Allows a passenger to review a driver if they have not already reviewed this journey
+  // and the journey has already taken place
   const review = async (journeyID: number, revieweeID: number) => {
     if (!user?.userID) return;
 
@@ -40,11 +69,13 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
 
     if (!journeyInfo) return;
 
+    // Prevent reviews being submitted before the journey date/time has passed
     if (!hasJourneyOccurred(journeyInfo.date, journeyInfo.departingAt)) {
       Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
       return;
     }
 
+    // Navigate to the review screen with journeyID and driver's userID (revieweeID)
     router.push({
       pathname: "/review",
       params: {
@@ -54,6 +85,7 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
     });
   };
 
+  // Allows a passenger to withdraw from a journey they have joined
   const cancelParticipation = (requestID: number) => {
     Alert.alert(
       "Confirm Cancellation",
@@ -71,6 +103,8 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
               await cancelRequest(db, requestID);
 
               Alert.alert("Success", "Journey cancelled");
+
+              // Refresh the list so the cancelled journey is removed from the UI
               loadJourneys();
             } catch (error) {
               console.error("Cancel request error", error);
@@ -83,7 +117,7 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
     );
   };
 
-  
+  // Loads the correct journey dataset based on the currently selected view mode
   const loadJourneys = async () => {
 
     setIsLoading(true);
@@ -92,11 +126,13 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
 
       if (viewMode === "myJourneys") {
 
+        // Fetch journeys created by the current user
         const result = await getOwnedJourneys(db, user!.userID);
         setJourneys(result);
 
       } else {
 
+        // Fetch journeys the current user has joined as a passenger
         const result = await getJoinedJourneys(db, user!.userID);
         setJourneys(result);
 
@@ -114,14 +150,15 @@ const [Journeys, setJourneys] = useState<(OwnedJourney | JoinedJourney)[]>([]);
 
   };
 
+  // Reload journeys whenever the user switches between the two view modes
   useEffect(() => {
 
     loadJourneys();
     
   }, [viewMode]);
 
-
-
+  // Reload journeys whenever the screen regains focus after navigation,
+  // so related changes made on other screens are reflected immediately
   useFocusEffect(
 
     useCallback(() => {

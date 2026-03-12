@@ -1,3 +1,18 @@
+
+/*
+
+  Root layout for the whole app
+
+  Performs global setup the rest of the app depends on to run:
+
+  - initialises SQLite database
+  - creates DB tables
+  - provides authentication state
+  - defines the root stack navigator
+  - keeps splash screen visible until initialisation is complete
+
+*/
+
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -7,18 +22,24 @@ import { AuthProvider } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SplashScreen } from 'expo-router';
 
+// Prevent the splash screen from hiding automatically so the app
+// only becomes visible after database initialization is complete
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
 
+  // Detect the current device theme so the correct navigation theme can be applied
   const colorScheme = useColorScheme();
 
   return (
 
+    // Provide a shared SQLite database connection to the entire app
     <SQLiteProvider
       databaseName="userDatabase.db"
       onInit={async (db) => {
         
+        // Create all required database tables when the app starts
+        // if they do not already exist
         await db.execAsync(`
 
           CREATE TABLE IF NOT EXISTS users (
@@ -79,26 +100,36 @@ export default function RootLayout() {
 
         `);
 
+        // Enable Write-Ahead Logging to improve SQLite reliability and concurrency
         await db.execAsync(`PRAGMA journal_mode=WAL;`)
 
+        // Hide the splash screen once database setup has completed
         await SplashScreen.hideAsync();
 
       }}
       options={{useNewConnection: false}}
       >
 
+      {/* Provide authentication state and login/logout functions to all screens */}
       <AuthProvider>
 
+        {/* Apply the correct navigation theme based on the device color scheme */}
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
 
+          {/* Root stack navigator for all top-level routes in the app */}
           <Stack>
 
+            {/* Entry route that decides whether the user goes to auth or the main app */}
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="editProfile" options={{ headerShown: true, title: 'Edit Profile' }} />
+
+            {/* Grouped layouts for the main authenticated tabs and auth flow */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+
+            {/* Standalone screens outside the tab bar, opened as needed from other screens */}
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             <Stack.Screen name="editJourney" options={{ headerShown: true, title: 'Edit Journey' }} />
+            <Stack.Screen name="editProfile" options={{ headerShown: true, title: 'Edit Profile' }} />
             <Stack.Screen name="findMatches" options={{ headerShown: true, title: 'Matches'  }} />
             <Stack.Screen name="sendRequest" options={{ headerShown: true, title: 'Send a Request'  }} />
             <Stack.Screen name="requestResponse" options={{ headerShown: true, title: 'Respond to a Request'  }} />
@@ -107,6 +138,7 @@ export default function RootLayout() {
 
           </Stack>
 
+          {/* Controls the appearance of the device status bar */}
           <StatusBar style="auto" />
 
         </ThemeProvider>

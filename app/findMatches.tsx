@@ -8,13 +8,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getUserReviewScore } from "@/services/reviewService";
 import { getJourneyById } from "@/services/journeyService";
 import type { Journey } from "@/services/journeyService";
-import { haversineKm } from "@/utils/geoUtils";
-
-type JourneyWithUserAndDistance = Journey & {
-  firstName: string;
-  originDistance: number;
-  destinationDistance: number;
-};
+import { findMatchingJourneys } from "@/services/matchingService";
+import type { JourneyMatch } from "@/services/matchingService";
 
 export default function FindMatches() {
   
@@ -25,7 +20,7 @@ export default function FindMatches() {
   const numericJourneyID = Number(journeyID);
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [journey, setJourney] = useState<Journey | null>(null);
-  const [matches, setMatches] = useState<JourneyWithUserAndDistance[]>([]);
+  const [matches, setMatches] = useState<JourneyMatch[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -41,144 +36,25 @@ export default function FindMatches() {
       return;
     }
 
-    // Radius of acceptable origins/destinations from the users origins/destinations
-    const RADIUS_KM = 5;
-
-    // Rough bounding box deltas
-    const LAT_DELTA = RADIUS_KM / 111;
-    const LNG_DELTA =
-    RADIUS_KM /
-    (111 * Math.cos(selectedJourney.originLatitude * Math.PI / 180));
-
     setJourney(selectedJourney);
 
-    const TIME_WINDOW_MINUTES = 30;
-
-    // Get matching journeys
-    const results = await db.getAllAsync<Journey & { firstName: string }>(
-    `
-    SELECT
-      j.*,
-      u.firstName
-    FROM journeys j
-    JOIN users u ON u.userID = j.userID
-    WHERE
-      j.userID != ?
-      AND j.date = ?
-
-      AND j.journeyType = ?
-
-      AND u.smokingAllowed = ?
-      AND u.prefersSameGender = ?
-      AND u.role = ?
-
-      -- If both require same gender, genders must match
-      AND (
-            ? = 0
-            OR u.gender = ?
-          )
-
-      AND ABS(
-        (
-          CAST(substr(j.departingAt, 1, 2) AS INTEGER) * 60 +
-          CAST(substr(j.departingAt, 4, 2) AS INTEGER)
-        ) -
-        (
-          CAST(substr(?, 1, 2) AS INTEGER) * 60 +
-          CAST(substr(?, 4, 2) AS INTEGER)
-        )
-      ) <= ?
-
-      -- Origin bounding box
-      AND j.originLatitude BETWEEN ? AND ?
-      AND j.originLongitude BETWEEN ? AND ?
-
-      -- Destination bounding box
-      AND j.destinationLatitude BETWEEN ? AND ?
-      AND j.destinationLongitude BETWEEN ? AND ?
-
-      -- Exclude journeys already requested by this user
-      AND NOT EXISTS (
-        SELECT 1
-        FROM requests r
-        WHERE r.journeyID = j.journeyID
-        AND r.requesterID = ?
-      )
-    `,
-    [
+    const matches = await findMatchingJourneys(
+      db,
+      selectedJourney,
       user!.userID,
-      selectedJourney.date,
-
-      "driver",
-
-      // Smoking exact match
-      user!.smokingAllowed,
-
-      // prefersSameGender exact match
-      user!.prefersSameGender,
-
-      // Role exact match
-      user!.role,
-
-      // gender enforcement if prefersSameGender = 1
-      user!.prefersSameGender,
-      user!.gender,
-
-      // Time window
-      selectedJourney.departingAt,
-      selectedJourney.departingAt,
-      TIME_WINDOW_MINUTES,
-
-      // Origin bounding box
-      selectedJourney.originLatitude - LAT_DELTA,
-      selectedJourney.originLatitude + LAT_DELTA,
-      selectedJourney.originLongitude - LNG_DELTA,
-      selectedJourney.originLongitude + LNG_DELTA,
-
-      // Destination bounding box
-      selectedJourney.destinationLatitude - LAT_DELTA,
-      selectedJourney.destinationLatitude + LAT_DELTA,
-      selectedJourney.destinationLongitude - LNG_DELTA,
-      selectedJourney.destinationLongitude + LNG_DELTA,
-
-      user!.userID,
-    ]
+      {
+        smokingAllowed: user!.smokingAllowed,
+        prefersSameGender: user!.prefersSameGender,
+        role: user!.role,
+        gender: user!.gender
+      }
     );
 
-    const enriched = results
-    .map((j) => {
-      const originDistance = haversineKm(
-        selectedJourney.originLatitude,
-        selectedJourney.originLongitude,
-        j.originLatitude,
-        j.originLongitude
-      );
+    setMatches(matches);  
 
-      const destinationDistance = haversineKm(
-        selectedJourney.destinationLatitude,
-        selectedJourney.destinationLongitude,
-        j.destinationLatitude,
-        j.destinationLongitude
-      );
+    const ratingMap: Record<number, number> = {};
 
-      return {
-        ...j,
-        originDistance,
-        destinationDistance,
-      };
-    })
-    .filter(
-      (j) =>
-        j.originDistance <= RADIUS_KM &&
-        j.destinationDistance <= RADIUS_KM
-    )
-    .sort((a, b) => a.originDistance - b.originDistance);
-
-    setMatches(enriched);
-
-    const ratingMap: { [key: number]: number } = {};
-
-    for (const match of enriched) {
+    for (const match of matches) {
       const score = await getUserReviewScore(db, match.userID);
       ratingMap[match.userID] = score ?? 0;
     }

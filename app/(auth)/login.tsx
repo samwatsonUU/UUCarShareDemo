@@ -22,21 +22,31 @@ import { authenticateUser } from "@/services/userService";
 
 export default function Login() { 
 
+  // Used to store the current logged in user in authContext which can be accessed globally
   const { login } = useAuth();
 
+  // Controls if text in the password field is visible
   const [showPassword, setShowPassword] = useState(false)
 
+  // Shared SQLite database
   const db = useSQLiteContext();
 
-  const register = () => { router.replace("/(auth)/register") }
+  // Function that navigates to the register screen when called
+  const goToRegister = () => { 
+    
+    router.push("/(auth)/register")
+  
+  }
 
-  const[form, setForm] = useState({
+  // Form that stores entered username and password
+  const [form, setForm] = useState({
 
     email: '',
     password: '',
 
   })
 
+  // Validates input and attempts login with provided username and password in form
   const handleSubmit = async () => {
 
     try {
@@ -77,7 +87,7 @@ export default function Login() {
     }
   };
 
-
+  // Display a data processing notice when the login screen is opened
   useEffect(() => {
     Alert.alert(
       "GDPR Declaration",
@@ -147,7 +157,7 @@ export default function Login() {
       <Pressable
 
         style={({ pressed }) => [styles.registerButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-        onPress={register}
+        onPress={goToRegister}
 
       >  
 

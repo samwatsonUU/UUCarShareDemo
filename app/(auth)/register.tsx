@@ -1,3 +1,16 @@
+
+/*
+
+  Registration screen for the application
+
+  This screen collects user details/preferences and validates them
+
+  If data is not acceptable, the user is alerted to make changes
+
+  If data supplied satisfies all validation rules, a new user record is created
+
+*/
+
 import { StyleSheet, Text, View, ScrollView, Pressable, Alert, TextInput, Switch } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState } from "react";
@@ -8,7 +21,8 @@ import { emailExists, createUser } from "@/services/userService";
 
 export default function Register() {
 
-  const[form, setForm] = useState({
+  // Form to store all values entered into the registration screen's inputs
+  const [form, setForm] = useState({
 
     email: '',
     password: '',
@@ -23,93 +37,112 @@ export default function Register() {
 
   })
 
+  // Shared SQLite DB
   const db = useSQLiteContext();
 
+  // Function to enforce UU email addresses are only allowed
   const validEmail = (value: string): boolean => {
 
     return /^[A-Za-z0-9._%+-]+@ulster\.ac\.uk$/.test(value);
 
   }
 
+  // Function to ensure passwords are complex enough
+  // Must be at least 8 characters and contain a number, special character and capital letter
   const validPassword = (value: string): boolean => {
 
     return /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
 
   }
 
+  // Controls if text in the password field is visible
   const [showPassword, setShowPassword] = useState(false)
 
-const handleSubmit = async () => {
-  try {
-    const email = form.email.trim();
-    const firstName = form.firstName.trim();
-    const lastName = form.lastName.trim();
+  // Validates the data entered into the form, checks if the provided email is already 
+  // associated with an account, and creates a new user record
+  const handleSubmit = async () => {
+    try {
 
-    if (!email || !form.password || !form.confirmPassword || !firstName || !lastName || !form.gender || !form.role) {
-      throw new Error("All fields are required");
-    }
+      // Trim the text fields to remove unecesssary whitespace
+      const email = form.email.trim();
+      const firstName = form.firstName.trim();
+      const lastName = form.lastName.trim();
 
-    if (await emailExists(db, email)) {
-      throw new Error('Email provided is already in use - use "Reset Password" instead.');
-    }
+      // Ensure all fields have values
+      if (!email || !form.password || !form.confirmPassword || !firstName || !lastName || !form.gender || !form.role) {
+        throw new Error("All fields are required");
+      }
 
-    if (!validEmail(email)) {
-      throw new Error("Email must end with @ulster.ac.uk");
-    }
+      // Prevent multiple accounts being created using the same email address
+      if (await emailExists(db, email)) {
+        throw new Error('Email provided is already in use - use "Reset Password" instead.');
+      }
 
-    if (!validPassword(form.password)) {
-      throw new Error(
-        "Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character"
+      // Esnure an UU email address has been provided
+      if (!validEmail(email)) {
+        throw new Error("Email must end with @ulster.ac.uk");
+      }
+
+      // Ensure entered password meets required complexity rules
+      if (!validPassword(form.password)) {
+        throw new Error(
+          "Password does not meet requirements - must be at least 8 characters and contain 1 capital letter, 1 number and 1 special character"
+        );
+      }
+
+      // Ensure the user has confirmed thier password correctly
+      if (form.password !== form.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      // Create a new user account with the supplied information
+      // Booleans are converted to numbers (if toggled 1, if not 0)
+      await createUser(db, {
+        email,
+        password: form.password,
+        firstName,
+        lastName,
+        gender: form.gender,
+        role: form.role,
+        canDrive: Number(form.canDrive),
+        prefersSameGender: Number(form.prefersSameGender),
+        smokingAllowed: Number(form.smokingAllowed),
+      });
+
+      // Inform the user they have registered successfully
+      Alert.alert(
+        "Success",
+        `You have been registered successfully, ${firstName}!`
       );
+
+      // Reset the form after successful account creation
+      setForm({
+        email: "",
+        password: "",
+        confirmPassword: "",
+        firstName: "",
+        lastName: "",
+        gender: "",
+        role: "",
+        canDrive: false,
+        prefersSameGender: false,
+        smokingAllowed: false,
+      });
+
+    } catch (error: unknown) {
+      console.error(error);
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred while registering the user.";
+
+      Alert.alert("Error", message);
     }
+  };
 
-    if (form.password !== form.confirmPassword) {
-      throw new Error("Passwords do not match");
-    }
-
-    await createUser(db, {
-      email,
-      password: form.password,
-      firstName,
-      lastName,
-      gender: form.gender,
-      role: form.role,
-      canDrive: Number(form.canDrive),
-      prefersSameGender: Number(form.prefersSameGender),
-      smokingAllowed: Number(form.smokingAllowed),
-    });
-
-    Alert.alert(
-      "Success",
-      `You have been registered successfully, ${firstName}!`
-    );
-
-    setForm({
-      email: "",
-      password: "",
-      confirmPassword: "",
-      firstName: "",
-      lastName: "",
-      gender: "",
-      role: "",
-      canDrive: false,
-      prefersSameGender: false,
-      smokingAllowed: false,
-    });
-
-  } catch (error: unknown) {
-    console.error(error);
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : "An error occurred while registering the user.";
-
-    Alert.alert("Error", message);
-  }
-};
-
-  const returnToMenu = async () => { router.replace("/(auth)/login") }
+  // return the user to the login screen when called
+  const returnToLogin = async () => { router.replace("/(auth)/login") }
 
   return (
 
@@ -260,7 +293,7 @@ const handleSubmit = async () => {
 
       <Pressable
         style={({ pressed }) => [styles.registerButton, pressed && { backgroundColor: "rgba(98, 98, 98, 1)"}]}
-        onPress={returnToMenu}
+        onPress={returnToLogin}
       >  
         {({ pressed }) => (
         <Text style={[styles.buttonText, pressed && { color: "white" }]}>Back to Login</Text>

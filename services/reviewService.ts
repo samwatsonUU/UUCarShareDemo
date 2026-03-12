@@ -31,12 +31,13 @@ export async function hasUserReviewedJourney(
   journeyID: number,
   reviewerID: number
 ): Promise<boolean> {
-  const result = await db.getAllAsync(
-    "SELECT * FROM reviews WHERE journeyID = ? AND reviewerID = ?",
+
+  const result = await db.getFirstAsync<{ reviewID: number }>(
+    "SELECT reviewID FROM reviews WHERE journeyID = ? AND reviewerID = ?",
     [journeyID, reviewerID]
   );
 
-  return result.length > 0;
+  return result !== null;
 }
 
 export async function getJourneyDateTime(
@@ -49,4 +50,19 @@ export async function getJourneyDateTime(
   );
 
   return result ?? null;
+}
+
+export async function addReview(
+  db: SQLiteDatabase,
+  reviewerID: number,
+  revieweeID: number,
+  journeyID: number,
+  rating: number
+): Promise<void> {
+
+  await db.runAsync(
+    `INSERT INTO reviews (reviewerID, revieweeID, journeyID, rating)
+     VALUES (?, ?, ?, ?)`,
+    [reviewerID, revieweeID, journeyID, rating]
+  );
 }

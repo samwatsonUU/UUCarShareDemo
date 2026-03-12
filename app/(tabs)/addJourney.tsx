@@ -1,21 +1,46 @@
+
+/*
+
+  Journey creation screen
+
+  Allows the user to create a new journey record by defining an origin, destination, depart
+  time, must arrive at time and date
+
+  Origin and destination fields make use of the Google Places API to provide suggestions for
+  entered values. This allows lat and long values to be retrieved and used in a Haversine
+  formula for matching purposes.
+
+*/
+
 import { useState } from "react";
 import { View, StyleSheet, Alert, Text, Pressable, Keyboard } from 'react-native'
 import { useSQLiteContext } from "expo-sqlite";
 import { useAuth } from "@/context/AuthContext";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { createJourney } from "@/services/journeyService";
 
 export default function AddJourney() {
 
+  // Shared DB connection
   const db = useSQLiteContext();
+
+  // Current logged-in user
   const { user } = useAuth();
 
+  // Google Places API key used by the autocomplete location inputs
   const API_KEY = "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs";
+
+  // Control visibility of the time/date picker components
   const [showDepartingPicker, setShowDepartingPicker] = useState(false);
   const [showArrivingPicker, setShowArrivingPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Tracks which autocomplete field is currently active so its suggestions
+  // can be layered above the rest of the form correctly
   const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
 
+  // Stores all journey form values, including display text and coordinates
   const[form, setForm] = useState({
 
     origin: '',
@@ -30,63 +55,62 @@ export default function AddJourney() {
 
   })
 
+  // Validate the journey form, format values for storage, and insert the new journey
   const handleSubmit = async () => {
 
     try {
 
-      // ensure no inputs are empty
+      // Ensure all required journey fields have been completed
       if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
 
         throw new Error('All fields are required');
-          
+      
+      // Ensure both locations were selected from Google suggestions so coordinates are available  
       } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
 
         throw new Error("Please select both an origin and a destination from the suggestions list.")
 
+      // Ensure that departure time is before must arrive at time  
       } else if(form.mustArriveAt < form.departingAt) {
 
         throw new Error("Departure Time must be before Must Arrive At time")
 
       }
 
+      // Convert dates into string formats suitable for database storage
       const formattedDate = form.date.toLocaleDateString("en-GB");
-
       const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
-
       const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
 
+      // Infer whether this journey is being offered by a driver or requested by a passenger
       const journeyType = user!.canDrive === 1 ? "driver" : "passenger";
 
-      // insert data into the database
-      await db.runAsync(
-
-        'INSERT INTO journeys (userID, origin, originLatitude, originLongitude, destination, destinationLatitude, destinationLongitude, departingAt, mustArriveAt, date, journeyType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          user!.userID,
-          form.origin,
-          form.originLatitude,
-          form.originLongitude,
-          form.destination,
-          form.destinationLatitude,
-          form.destinationLongitude,
-          formattedDepartingAt,
-          formattedMustArriveAt,
-          formattedDate,
-          journeyType
-        ]
-      );
+      // Insert the new journey record into the database
+      await createJourney(db, {
+        userID: user!.userID,
+        origin: form.origin,
+        originLatitude: form.originLatitude,
+        originLongitude: form.originLongitude,
+        destination: form.destination,
+        destinationLatitude: form.destinationLatitude,
+        destinationLongitude: form.destinationLongitude,
+        departingAt: formattedDepartingAt,
+        mustArriveAt: formattedMustArriveAt,
+        date: formattedDate,
+        journeyType,
+      });
 
       Alert.alert('Success', 'Journey added successfully!');
+
+      // Clear the form after a successful insert so old values are not retained
       setForm({
 
         origin: '',
         originLatitude: null,
         originLongitude: null,
-
         destination: '',
         destinationLatitude: null,
         destinationLongitude: null,
-
         departingAt: null,
         mustArriveAt: null,
         date: null,
@@ -97,7 +121,7 @@ export default function AddJourney() {
 
       console.error(error);
 
-      const message = error instanceof Error ? error.message: 'An error occurred while adding the user.';
+      const message = error instanceof Error ? error.message: 'An error occurred while adding the journey.';
 
       Alert.alert('Error', message);
     }
@@ -105,6 +129,7 @@ export default function AddJourney() {
 
   return (
 
+    // Dismiss the keyboard and close autocomplete focus when the user taps outside the form
     <Pressable
       style={{ flex: 1 }}
       onPress={() => {
@@ -140,6 +165,7 @@ export default function AddJourney() {
 
                   setActiveAutocomplete(null);
 
+                  // Store both the place label and its coordinates for later matching and storage
                   setForm({
                     ...form,
                     origin: data.description,
@@ -207,6 +233,7 @@ export default function AddJourney() {
 
                   setActiveAutocomplete(null);
 
+                  // Store both the place label and its coordinates for later matching and storage
                   setForm({
                     ...form,
                     destination: data.description,

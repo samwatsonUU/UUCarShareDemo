@@ -45,6 +45,20 @@ export type Passenger = {
   lastName: string;
 };
 
+export type CreateJourneyInput = {
+  userID: number;
+  origin: string;
+  originLatitude: number;
+  originLongitude: number;
+  destination: string;
+  destinationLatitude: number;
+  destinationLongitude: number;
+  departingAt: string;
+  mustArriveAt: string;
+  date: string;
+  journeyType: string;
+};
+
 export async function getJourneyById(
   db: SQLiteDatabase,
   journeyID: number
@@ -102,6 +116,40 @@ export async function getPassengersForJourney(
      JOIN users u ON u.userID = r.requesterID
      WHERE r.journeyID = ?`,
     [journeyID]
+  );
+}
+
+export async function createJourney(
+  db: SQLiteDatabase,
+  journey: CreateJourneyInput
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO journeys (
+      userID,
+      origin,
+      originLatitude,
+      originLongitude,
+      destination,
+      destinationLatitude,
+      destinationLongitude,
+      departingAt,
+      mustArriveAt,
+      date,
+      journeyType
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      journey.userID,
+      journey.origin,
+      journey.originLatitude,
+      journey.originLongitude,
+      journey.destination,
+      journey.destinationLatitude,
+      journey.destinationLongitude,
+      journey.departingAt,
+      journey.mustArriveAt,
+      journey.date,
+      journey.journeyType,
+    ]
   );
 }
 
