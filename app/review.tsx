@@ -1,3 +1,16 @@
+
+/*
+
+    Review screen
+
+    This screen allows the user to leave a start rating out of 5 for antoher user
+
+    This screen is used to review both passengers and drivers
+
+    The user can also report users to the UUCarShare team
+
+*/
+
 import { StyleSheet, Text, View, Pressable, Alert } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useState } from 'react';
@@ -9,28 +22,38 @@ import { addReview } from "@/services/reviewService";
 
 export default function Review() {
 
+    // Shared SQLite database connection
     const db = useSQLiteContext();
 
+    // Retrieve the journey ID passed through navigation
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
 
+    // Retrieve the user being reviewed
     const { revieweeID } = useLocalSearchParams<{ revieweeID: string }>();
 
+    // Current logged-in user (the reviewer)
     const { user } = useAuth();
 
+    // Stores the selected star rating (0–5)
     const [rating, setRating] = useState(0);
 
+    // Handles submission of the review
     const addReviewHandler = async () => {
 
-    await addReview(
-        db,
-        user!.userID,
-        Number(revieweeID),
-        Number(journeyID),
-        rating
-    );
+        // Call the review service to insert the review into the database
+        await addReview(
+            db,
+            user!.userID,
+            Number(revieweeID),
+            Number(journeyID),
+            rating
+        );
 
-    Alert.alert("Success", "Review Submitted!");
-    router.replace("/(tabs)/myJourneys");
+        // Notify the user that the review has been saved
+        Alert.alert("Success", "Review Submitted!");
+
+        // Navigate back to the My Journeys screen
+        router.replace("/(tabs)/myJourneys");
     }
 
     return (
@@ -86,6 +109,10 @@ export default function Review() {
                 ]}
                 onPress= { () => {
                     
+                    /*
+                      Currently this only displays a confirmation message.
+                      In a real system this would log for a human to review.
+                    */
                     Alert.alert(
                         "Success",
                         "This user has been reported to our team.",

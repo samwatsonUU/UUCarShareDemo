@@ -14,6 +14,7 @@ AuthContext.tsx
 
 import React, { createContext, useContext, useState } from "react";
 
+// Structure representing the authenticated user - This mirrors the structure of the user record stored in the database.
 export type AuthUser = {
   
   userID: number;
@@ -29,6 +30,8 @@ export type AuthUser = {
 
 };
 
+
+//Structure of the values stored in the auth context.
 type AuthContextType = {
 
   user: AuthUser | null;
@@ -38,18 +41,24 @@ type AuthContextType = {
 
 };
 
+
+// Create the React Context - Initially set to null until it is provided by AuthProvider.
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 
+  // Stores the currently logged-in user
   const [user, setUser] = useState<AuthUser | null>(null);
 
+  // Login function that stores authenticated user's info in state
+  // Makes it accessible app-wide
   const login = (user: AuthUser) => {
 
     setUser(user);
 
   };
 
+  // Logout function that clears the details in state of the store user 
   const logout = () => {
 
     setUser(null);
@@ -77,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+
+// Hook for accessing the auth context
 export function useAuth() {
 
   const context = useContext(AuthContext);

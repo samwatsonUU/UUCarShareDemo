@@ -1,3 +1,14 @@
+
+/*
+
+    Passenger list screen
+
+    Displays all passengers that have been approved for a selected journey
+
+    From this screen, the journey owner (the driver) is able to review their passengers
+
+*/
+
 import { StyleSheet, Text, View, Pressable, FlatList, Alert } from 'react-native';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
@@ -9,21 +20,33 @@ import { hasJourneyOccurred } from "@/utils/journeyUtils";
 import { getPassengersForJourney } from "@/services/journeyService";
 import type { Passenger } from "@/services/journeyService";
 
+// Extends the Passenger type so each passenger can also store a review score
 type PassengerWithReviewScore = Passenger & {
   reviewScore: number,
 }
 
 export default function Passengers() {
 
+    // Shared SQLite database connection
     const db = useSQLiteContext();
+
+    // Stores passengers plus their review scores for display
     const [Users, setUsers] = useState<PassengerWithReviewScore[]>([]);
+
+    // Journey identifier passed through navigation
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
+
+    // Current logged-in user
     const { user } = useAuth();
 
+    // Load all passengers for the selected journey, then fetch each passenger's review score
     const loadUsers = async () => {
         try {
+
+            // Get all approved passengers linked to this journey
             const result = await getPassengersForJourney(db, Number(journeyID));
 
+            // For each passenger, also retrieve their average review score
             const usersWithScores: PassengerWithReviewScore[] = await Promise.all(
             result.map(async (item) => {
                 const reviewScore = await getUserReviewScore(db, item.userID);
@@ -35,48 +58,55 @@ export default function Passengers() {
             })
             );
 
+            // Store the final passenger list with scores
             setUsers(usersWithScores);
         } catch (error) {
             console.error("Database error", error);
         }
     };
 
+    // Load passenger data when the screen first opens
     useEffect(() => {
 
         loadUsers();
 
     }, []);
 
+    // Navigate to the review screen if the passenger is eligible to be reviewed
     const review = async (journeyID: number, revieweeID: number) => {
-    if (!user?.userID) return;
+        if (!user?.userID) return;
 
-    const alreadyReviewed = await hasUserReviewedJourney(
-        db,
-        journeyID,
-        user.userID
-    );
+        // Prevent duplicate reviews for the same journey
+        const alreadyReviewed = await hasUserReviewedJourney(
+            db,
+            journeyID,
+            user.userID
+        );
 
-    if (alreadyReviewed) {
-        Alert.alert("Error", "You have already reviewed this passenger for this journey.");
-        return;
-    }
+        if (alreadyReviewed) {
+            Alert.alert("Error", "You have already reviewed this passenger for this journey.");
+            return;
+        }
 
-    const journeyInfo = await getJourneyDateTime(db, journeyID);
+        // Load the journey's date and departure time
+        const journeyInfo = await getJourneyDateTime(db, journeyID);
 
-    if (!journeyInfo) return;
+        if (!journeyInfo) return;
 
-    if (!hasJourneyOccurred(journeyInfo.date, journeyInfo.departingAt)) {
-        Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
-        return;
-    }
+        // Prevent the user from reviewing before the journey has happened
+        if (!hasJourneyOccurred(journeyInfo.date, journeyInfo.departingAt)) {
+            Alert.alert("Error", "Cannot review a journey that hasn't occurred yet.");
+            return;
+        }
 
-    router.push({
-        pathname: "/review",
-        params: {
-        journeyID: journeyID.toString(),
-        revieweeID: revieweeID.toString(),
-        },
-    });
+        // Open the review screen and pass the selected journey and passenger IDs
+        router.push({
+            pathname: "/review",
+            params: {
+            journeyID: journeyID.toString(),
+            revieweeID: revieweeID.toString(),
+            },
+        });
     };
 
     return (
@@ -94,7 +124,10 @@ export default function Passengers() {
                         <View>
                             <View style={styles.passengerContainer}>
 
+                                {/* Display the passenger's full name and average review score */}
                                 <Text style={styles.nameLabel}>{item.firstName} {item.lastName} ⭐ {item.reviewScore.toFixed(1)}</Text>
+
+                                {/* Button to leave a review for this passenger */}
                                 <Pressable 
                                 
                                 style={({ pressed }) => [
@@ -111,6 +144,7 @@ export default function Passengers() {
                         </View>
                     )
                 }}
+                // Shown when no passengers are currently approved for the journey
                 ListEmptyComponent={<Text>Nothing here for now!</Text>}
             >
             </FlatList>

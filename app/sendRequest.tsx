@@ -1,3 +1,14 @@
+
+/*
+
+    Send request screen
+
+    This screen enables the user to send a carpoll request to another user for any journey they have matched with
+
+    A short message (up to 150 chars) is required
+
+*/
+
 import { StyleSheet, View, Text, TextInput, Pressable, Alert } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -10,22 +21,32 @@ import type { JourneyWithDriverName } from "@/services/journeyService";
 
 export default function SendRequest() {
 
+    // Shared SQLite database connection
     const db = useSQLiteContext();
+
+    // Logged-in user sending the request
     const { user } = useAuth();
 
+    // Journey ID passed through navigation
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
+
+    // Stores the selected journey details
     const [journey, setJourney] = useState<JourneyWithDriverName | null>(null);
+
+    // Stores the message entered by the user
     const [message, setMessage] = useState("");
 
+    // Load the selected journey when the screen opens
     useEffect(() => {
 
         const loadData = async () => {
 
             try {
     
-                // Selected journey
+                // Retrieve the selected journey along with the driver's name
                 const selectedJourney = await getJourneyWithDriverName(db, Number(journeyID));
-                    
+                
+                // If no journey is found, clear the state
                 if (!selectedJourney) {
     
                     setJourney(null);
@@ -33,6 +54,7 @@ export default function SendRequest() {
     
                 }
 
+                // Save the journey details into component state
                 setJourney(selectedJourney);
 
             } catch (err) {
@@ -93,6 +115,7 @@ export default function SendRequest() {
                 onPress={async () => {
                     if (!journey) return;
 
+                    // Require a non-empty message before sending
                     if (message.trim() === "") {
 
                         Alert.alert('Error', 'Add a message')

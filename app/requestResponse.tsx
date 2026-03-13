@@ -1,3 +1,14 @@
+
+/*
+
+    Request response screen
+
+    This screen allows the recipient of a carpool request to view the message they have
+    recieved, the details of the journey they want to join, and options to either approve
+    or deny the request
+
+*/
+
 import { StyleSheet, View, Text, TextInput, Pressable, Alert } from 'react-native';
 import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
@@ -5,6 +16,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { approveRequest, denyRequest } from "@/services/requestService";
 
+// Type describing the request data loaded from the database query
 type Request = {
 
     requestID: number;
@@ -21,15 +33,29 @@ type Request = {
 
 export default function RequestResponse() {
 
+    // Read the requestID passed through navigation parameters
     const { requestID } = useLocalSearchParams<{ requestID: string }>();
+
+    // Convert the requestID from string to number for database use
     const numericRequestID = Number(requestID);
+
+    // Shared SQLite database connection
     const db = useSQLiteContext();
+
+    // Stores the selected request details
     const [request, setRequest] = useState<Request | null>(null);
+
+    // Stores the optional response message typed by the user
     const [message, setMessage] = useState("");
 
+    // Approves the selected request
     const approve = async () => {
         try {
+
+            // Call the service function to approve the request
             await approveRequest(db, numericRequestID);
+
+            // Notify the user and return them to the inbox
             Alert.alert("Success", "Request approved!");
             router.replace("/(tabs)/inbox");
         } catch (error) {
@@ -38,9 +64,13 @@ export default function RequestResponse() {
         }
     };
 
+    // Denies the selected request
     const deny = async () => {
         try {
+            // Call the service function to deny the request
             await denyRequest(db, numericRequestID);
+
+            // Notify the user and return them to the inbox
             Alert.alert("Success", "Request has been denied!");
             router.replace("/(tabs)/inbox");
         } catch (error) {
@@ -49,20 +79,21 @@ export default function RequestResponse() {
         }
     };
 
+    // Load the selected request details when the screen opens
     useEffect(() => {
 
             const loadData = async () => {
 
                 try {
         
-                    // Selected request
+                    // Load selected request along with journey details and requester's details
                     const selectedRequest = await db.getFirstAsync<Request>(
     
                     "SELECT r.*, j.*, u.firstName FROM requests r JOIN journeys j ON r.journeyID = j.journeyID JOIN users u ON r.requesterID = u.userID WHERE r.requestID = ?",
                     [numericRequestID]
                     );
                 
-        
+                    // If no request is found, clear the state
                     if (!selectedRequest) {
         
                         setRequest(null);
@@ -70,6 +101,7 @@ export default function RequestResponse() {
         
                     }
     
+                    // Store the retrieved request in state
                     setRequest(selectedRequest);
     
                 } catch (err) {

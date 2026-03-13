@@ -1,3 +1,17 @@
+
+/*
+
+  Journey matching screen
+
+  This screen loads a selected journey and finds compatible journeys for it
+  using the matching service. It then displays those matches along with each
+  matched user's review score and allows the current user to send a request.
+
+  Matching is based on both journey details and the logged-in user's
+  preferences, such as smoking, gender preference, and role.
+
+*/
+
 import { StyleSheet, View, Text, ActivityIndicator, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
@@ -13,21 +27,33 @@ import type { JourneyMatch } from "@/services/matchingService";
 
 export default function FindMatches() {
   
+  // Shared SQLite DB connection
   const db = useSQLiteContext();
+
+  // Current logged-in user
   const { user } = useAuth();
 
+  // Journey identifier passed from the previous screen
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
   const numericJourneyID = Number(journeyID);
+
+  // Stores review scores for matched users so ratings can be shown in the UI
   const [ratings, setRatings] = useState<Record<number, number>>({});
+
+  // Stores the selected journey that matching is being performed against
   const [journey, setJourney] = useState<Journey | null>(null);
+
+  // Stores the journeys returned by the matching service
   const [matches, setMatches] = useState<JourneyMatch[]>([]);
+
   const [loading, setLoading] = useState(true);
 
+  // Load the selected journey, find compatible matches, and retrieve review scores
   const loadData = async () => {
 
   try {
 
-    // Selected journey
+    // Load the journey the user wants to find matches for
     const selectedJourney = await getJourneyById(db, numericJourneyID);
 
       if (!selectedJourney) {
@@ -38,6 +64,8 @@ export default function FindMatches() {
 
     setJourney(selectedJourney);
 
+    // Find journeys that match both the selected journey details
+    // and the logged-in user's preference settings
     const matches = await findMatchingJourneys(
       db,
       selectedJourney,
@@ -54,6 +82,7 @@ export default function FindMatches() {
 
     const ratingMap: Record<number, number> = {};
 
+    // Load each matched user's review score so it can be displayed beside their name
     for (const match of matches) {
       const score = await getUserReviewScore(db, match.userID);
       ratingMap[match.userID] = score ?? 0;
@@ -72,6 +101,7 @@ export default function FindMatches() {
     }
   };
 
+  // Reload matches whenever the screen becomes active again
   useFocusEffect(
 
       useCallback(() => {
@@ -91,6 +121,7 @@ export default function FindMatches() {
         Showing all matches for the following journey:
       </Text>
 
+       {/* Display the journey currently being used as the basis for matching */}
       {journey && (
         <View style={styles.journeyCard}>
           <Text>Origin: {journey.origin}</Text>
@@ -115,6 +146,7 @@ export default function FindMatches() {
               <Text>Must Arrive At: {match.mustArriveAt}</Text>
               <Text>Date: {match.date}</Text>
 
+              {/* Navigate to the request screen for the selected matching journey */}
               <Pressable
                 style={({ pressed }) => [styles.requestButton, pressed && { backgroundColor: "rgba(11, 161, 226, 1)"}]}
                 onPress={ () => 

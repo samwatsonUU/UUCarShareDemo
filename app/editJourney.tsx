@@ -1,3 +1,16 @@
+
+/*
+  Journey editing screen
+
+  This screen loads an existing journey using the journeyID passed through navigation.
+
+  It retrieves that journey's current data, displays it in editable fields,
+  and saves any changes back to the database when the user presses Save Changes.
+
+  As in addJourney.tsx, the origin and destination fields use Google Places
+  Autocomplete so coordinate values can also be stored.
+*/
+
 import { StyleSheet, Text, View, Keyboard, Pressable, Alert } from 'react-native';
 import { useEffect, useState } from "react";
 import { useSQLiteContext } from "expo-sqlite";
@@ -5,51 +18,57 @@ import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { getJourneyById, updateJourney, deleteJourneyById } from "@/services/journeyService";
 
-export default function editJourney() {
+export default function EditJourney() {
 
+  // Shared DB connection
   const db = useSQLiteContext();
 
+  // Journey identifier passed from the previous screen so the correct record can be edited
   const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
+
+  // Tracks which autocomplete field is active so its suggestion list appears above other elements
   const [activeAutocomplete, setActiveAutocomplete] = useState<"origin" | "destination" | null>(null);
+
+  // Control visibility of the time/date picker components
   const [showDepartingPicker, setShowDepartingPicker] = useState(false);
   const [showArrivingPicker, setShowArrivingPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Google Places API key used by the autocomplete location inputs
   const API_KEY = "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs";
 
-  const[form, setForm] = useState({
-
-    journeyID: '',
-    userID: '',
-
+  // Stores the editable journey values, including both display text and coordinates
+  const [form, setForm] = useState({
     origin: '',
     originLatitude: null as number | null,
     originLongitude: null as number | null,
-
     destination: '',
     destinationLatitude: null as number | null,
     destinationLongitude: null as number | null,
-
     departingAt: null as Date | null,
     mustArriveAt: null as Date | null,
     date: null as Date | null,
-
   })
 
+  // Validate the edited journey values, format them for storage,
+  // and update the existing database record
   const saveChanges = async () => {
 
     try {
 
-      // ensure no inputs are empty
+      // Ensure all fields have been completed
       if(!form.origin || !form.destination || !form.departingAt || !form.mustArriveAt || !form.date) {
 
         throw new Error('All fields are required');
           
+      // Ensure the edited locations were selected from autocomplete suggestions  
       } else if(form.originLatitude === null || form.originLongitude === null || form.destinationLatitude === null || form.destinationLongitude === null) {
 
         throw new Error("Please select both an origin and a destination from the suggestions list.")
 
+      // Ensure departing at time is before must arrive at time  
       } else if(form.mustArriveAt < form.departingAt) {
 
         throw new Error("Departure Time must be before Must Arrive At time.")
@@ -61,33 +80,22 @@ export default function editJourney() {
       const formattedDepartingAt = form.departingAt.toTimeString().slice(0, 5);
       const formattedMustArriveAt = form.mustArriveAt.toTimeString().slice(0, 5);
 
-      await db.runAsync(
-        `UPDATE journeys 
-        SET origin = ?, 
-            originLatitude = ?, 
-            originLongitude = ?, 
-            destination = ?, 
-            destinationLatitude = ?, 
-            destinationLongitude = ?, 
-            departingAt = ?, 
-            mustArriveAt = ?, 
-            date = ? 
-        WHERE journeyID = ?`,
-        [
-          form.origin,
-          form.originLatitude,
-          form.originLongitude,
-          form.destination,
-          form.destinationLatitude,
-          form.destinationLongitude,
-          formattedDepartingAt,
-          formattedMustArriveAt,
-          formattedDate,
-          journeyID
-        ]
-      );
+      // Update the existing journey record with the edited values
+      await updateJourney(db, Number(journeyID), {
+        origin: form.origin,
+        originLatitude: form.originLatitude,
+        originLongitude: form.originLongitude,
+        destination: form.destination,
+        destinationLatitude: form.destinationLatitude,
+        destinationLongitude: form.destinationLongitude,
+        departingAt: formattedDepartingAt,
+        mustArriveAt: formattedMustArriveAt,
+        date: formattedDate,
+      });
 
       Alert.alert("Success", "Changes Saved!");
+
+      // Return the user to their journey list after saving
       router.replace("/(tabs)/myJourneys");
 
     } catch (error: unknown) {
@@ -103,95 +111,87 @@ export default function editJourney() {
     }
   };
 
-    const deleteJourney = () => {
+  // Delete the current journey after user confirmation
+  const deleteJourney = () => {
 
-      Alert.alert(
-        "Confirm Deletion",
-        "Are you sure you want to delete this journey?",
-        [
-          {
-            text: "No",
-            style: "cancel",
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to delete this journey?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            await deleteJourneyById(db, Number(journeyID));
+            Alert.alert("Success", "Journey deleted");
+            router.replace("/(tabs)/myJourneys");
           },
-          {
-            text: "Yes",
-            style: "destructive",
-            onPress: async () => {
-              await db.runAsync(
-                "DELETE FROM journeys WHERE journeyID = ?",
-                [journeyID]
-              );
-
-              Alert.alert("Success", "Journey deleted");
-              router.replace("/(tabs)/myJourneys");
-            },
-          },
-        ],
-        { cancelable: true }
-      );
-      
-    };
-
-    useEffect(() => {
-
-        if (!journeyID) return;
-
-        const loadJourney = async () => {
-
-            try {
-
-                const result = await db.getFirstAsync<any> (
-
-                    "SELECT * FROM journeys WHERE journeyID = ?", [journeyID]
-
-                );
-
-                if (result) {
-
-                  const [depHour, depMin] = result.departingAt.split(":").map(Number);
-                  const [arrHour, arrMin] = result.mustArriveAt.split(":").map(Number);
-
-                  const [day, month, year] = result.date.split("/").map(Number);
-
-                  const dateObj = new Date(year, month - 1, day);
-
-                  const departingDate = new Date(dateObj);
-                  departingDate.setHours(depHour, depMin, 0, 0);
-
-                  const arrivingDate = new Date(dateObj);
-                  arrivingDate.setHours(arrHour, arrMin, 0, 0);
-
-                  setForm({
-                    journeyID: result.journeyID.toString(),
-                    userID: result.userID ?? '',
-
-                    origin: result.origin ?? '',
-                    originLatitude: result.originLatitude ?? null,
-                    originLongitude: result.originLongitude ?? null,
-
-                    destination: result.destination ?? '',
-                    destinationLatitude: result.destinationLatitude ?? null,
-                    destinationLongitude: result.destinationLongitude ?? null,
-
-                    departingAt: departingDate,
-                    mustArriveAt: arrivingDate,
-                    date: dateObj,
-                  });
-                }
-
-            } catch (error) {
-
-                console.error("Failed to load journey", error);
-
-            }
-        };
+        },
+      ],
+      { cancelable: true }
+    );
     
+  };
+
+  // Load the current journey details when the screen opens
+  useEffect(() => {
+
+    if (!journeyID) return;
+
+    const loadJourney = async () => {
+
+      try {
+
+          const result = await getJourneyById(db, Number(journeyID));
+
+          if (result) {
+
+            // Parse stored HH:mm time strings into hour/minute values
+            const [depHour, depMin] = result.departingAt.split(":").map(Number);
+            const [arrHour, arrMin] = result.mustArriveAt.split(":").map(Number);
+
+            // Parse the stored dd/mm/yyyy string into a JavaScript Date
+            const [day, month, year] = result.date.split("/").map(Number);
+            const dateObj = new Date(year, month - 1, day);
+
+            // Rebuild full Date objects so the picker controls can display and edit them
+            const departingDate = new Date(dateObj);
+            departingDate.setHours(depHour, depMin, 0, 0);
+            const arrivingDate = new Date(dateObj);
+            arrivingDate.setHours(arrHour, arrMin, 0, 0);
+
+            // Populate the form with the existing journey values
+            setForm({
+              origin: result.origin ?? '',
+              originLatitude: result.originLatitude ?? null,
+              originLongitude: result.originLongitude ?? null,
+              destination: result.destination ?? '',
+              destinationLatitude: result.destinationLatitude ?? null,
+              destinationLongitude: result.destinationLongitude ?? null,
+              departingAt: departingDate,
+              mustArriveAt: arrivingDate,
+              date: dateObj,
+            });
+          }
+
+      } catch (error) {
+
+          console.error("Failed to load journey", error);
+
+      }
+    };
+  
     loadJourney();
 
   }, [journeyID]);
 
   return (
   
+    // Dismiss the keyboard and close autocomplete focus when the user taps outside the form
     <Pressable
       style={{ flex: 1 }}
       onPress={() => {
