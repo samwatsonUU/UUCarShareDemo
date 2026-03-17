@@ -96,8 +96,16 @@ export async function findMatchingJourneys(
     WHERE
       j.userID != ?
       AND j.date = ?
-
       AND j.journeyType = ?
+
+      AND NOT EXISTS (
+
+        SELECT 1
+        FROM requests r
+        WHERE r.journeyID = j.journeyID
+          AND r.requesterID = ?
+
+      )
 
       AND u.smokingAllowed = ?
       AND u.prefersSameGender = ?
@@ -128,8 +136,8 @@ export async function findMatchingJourneys(
     [
         currentUserID,
         selectedJourney.date,
-
         selectedJourney.journeyType,
+        currentUserID,
 
         currentUser.smokingAllowed,
         currentUser.prefersSameGender,

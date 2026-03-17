@@ -1,11 +1,6 @@
 
 import { hasUserReviewedJourney } from "./reviewService";
 
-const mockDb = {
-    getFirstAsync: jest.fn(),
-    runAsync: jest.fn(),
-};
-
 describe("hasUserReviewedJourney", () => {
 
     it("returns true when a matching review exists", async () => {
