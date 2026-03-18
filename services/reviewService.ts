@@ -36,7 +36,7 @@ type JourneyDateTimeInfo = {
 export async function getUserReviewScore(
   db: SQLiteDatabase,
   userID: number
-): Promise<number> {
+) : Promise<number> {
 
   try {
     const result = await db.getFirstAsync<{ total: number | null; count: number }>(
@@ -117,8 +117,7 @@ export async function addReview(
 ): Promise<void> {
 
   await db.runAsync(
-    `INSERT INTO reviews (reviewerID, revieweeID, journeyID, rating)
-     VALUES (?, ?, ?, ?)`,
+    `INSERT INTO reviews (reviewerID, revieweeID, journeyID, rating) VALUES (?, ?, ?, ?)`,
     [reviewerID, revieweeID, journeyID, rating]
   );
 

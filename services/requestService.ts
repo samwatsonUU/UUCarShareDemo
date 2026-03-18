@@ -50,10 +50,7 @@ export async function createRequest(
 ): Promise<void> {
 
   await db.runAsync(
-    `INSERT INTO requests
-     (requesterID, recipientID, journeyID, message, status)
-     VALUES (?, ?, ?, ?, "Pending")`,
-    [requesterID, recipientID, journeyID, message]
+    `INSERT INTO requests (requesterID, recipientID, journeyID, message, status) VALUES (?, ?, ?, ?, "Pending")`, [requesterID, recipientID, journeyID, message]
   );
 
 }
