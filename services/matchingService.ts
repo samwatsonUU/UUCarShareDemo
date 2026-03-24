@@ -13,7 +13,7 @@
 
 import type { SQLiteDatabase } from "expo-sqlite";
 import type { Journey } from "@/services/journeyService";
-import { haversineKm } from "@/utils/geoUtils";
+import { haversineKm } from "../utils/geoUtils";
 
 /*
   Extends the Journey type with extra information needed for displaying
