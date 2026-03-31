@@ -15,7 +15,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
-import { getUserReviewScore, hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
+import { getUserReviewScore, hasUserReviewedThisUserAndJourney, getJourneyDateTime } from "@/services/reviewService";
 import { hasJourneyOccurred } from "@/utils/journeyUtils";
 import { getPassengersForJourney } from "@/services/journeyService";
 import type { Passenger } from "@/services/journeyService";
@@ -77,10 +77,11 @@ export default function Passengers() {
         if (!user?.userID) return;
 
         // Prevent duplicate reviews for the same journey
-        const alreadyReviewed = await hasUserReviewedJourney(
+        const alreadyReviewed = await hasUserReviewedThisUserAndJourney(
             db,
             journeyID,
-            user.userID
+            user.userID,
+            revieweeID
         );
 
         if (alreadyReviewed) {

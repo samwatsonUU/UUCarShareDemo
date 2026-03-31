@@ -50,6 +50,13 @@ export default function RequestResponse() {
 
     // Approves the selected request
     const approve = async () => {
+
+        // Require a non-empty response message before approving
+        if (message.trim() === "") {
+            Alert.alert("Error", "Add a message.");
+            return;
+        }
+
         try {
 
             // Call the service function to approve the request
@@ -66,6 +73,13 @@ export default function RequestResponse() {
 
     // Denies the selected request
     const deny = async () => {
+
+        // Require a non-empty response message before approving
+        if (message.trim() === "") {
+            Alert.alert("Error", "Add a message.");
+            return;
+        }
+
         try {
             // Call the service function to deny the request
             await denyRequest(db, numericRequestID);

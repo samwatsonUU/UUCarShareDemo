@@ -37,7 +37,7 @@ export default function forgotPassword() {
       // Ensure the user has entered an email address
       if(!form.email) {
 
-      Alert.alert("Error", "Please eneter an email address.");
+      Alert.alert("Error", "Please enter an email address.");
       return;
 
       // Reject emails that do not end in @ulster.ac.uk

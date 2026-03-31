@@ -25,7 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { router } from "expo-router";
-import { hasUserReviewedJourney, getJourneyDateTime } from "@/services/reviewService";
+import { hasUserReviewedThisUserAndJourney, getJourneyDateTime } from "@/services/reviewService";
 import { hasJourneyOccurred } from "@/utils/journeyUtils";
 import { cancelRequest } from "@/services/requestService";
 import { getOwnedJourneys, getJoinedJourneys } from "@/services/journeyService";
@@ -54,10 +54,11 @@ export default function MyJourneys() {
   const review = async (journeyID: number, revieweeID: number) => {
     if (!user?.userID) return;
 
-    const alreadyReviewed = await hasUserReviewedJourney(
+    const alreadyReviewed = await hasUserReviewedThisUserAndJourney(
       db,
       journeyID,
-      user.userID
+      user.userID,
+      revieweeID
     );
 
     if (alreadyReviewed) {

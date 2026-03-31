@@ -66,15 +66,16 @@ export async function getUserReviewScore(
 
   This helps prevent duplicate reviews being submitted for the same journey.
 */
-export async function hasUserReviewedJourney(
+export async function hasUserReviewedThisUserAndJourney(
   db: SQLiteDatabase,
   journeyID: number,
-  reviewerID: number
+  reviewerID: number,
+  revieweeID: number,
 ): Promise<boolean> {
 
   const result = await db.getFirstAsync<{ reviewID: number }>(
-    "SELECT reviewID FROM reviews WHERE journeyID = ? AND reviewerID = ?",
-    [journeyID, reviewerID]
+    "SELECT reviewID FROM reviews WHERE journeyID = ? AND reviewerID = ? AND revieweeID = ?",
+    [journeyID, reviewerID, revieweeID]
   );
 
   return result !== null;
