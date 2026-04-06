@@ -248,7 +248,12 @@ export default function EditJourney() {
                       onFocus: () => setActiveAutocomplete("origin"),
                       onBlur: () => setActiveAutocomplete(null),
                       onChangeText: (text) =>
-                      setForm({ ...form, origin: text }),
+                        setForm({
+                          ...form,
+                          origin: text,
+                          originLatitude: null,
+                          originLongitude: null,
+                        }),
                     }}
                     styles={{
                       container: { flex: 0 },
@@ -310,7 +315,12 @@ export default function EditJourney() {
                     onFocus: () => setActiveAutocomplete("destination"),
                     onBlur: () => setActiveAutocomplete(null),
                     onChangeText: (text) =>
-                      setForm({ ...form, destination: text }),
+                        setForm({
+                          ...form,
+                          destination: text,
+                          destinationLatitude: null,
+                          destinationLongitude: null,
+                        }),
                   }}
                   styles={{
                     container: { flex: 0 },

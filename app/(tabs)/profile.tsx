@@ -20,7 +20,7 @@ import { Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';  
 import { getUserReviewScore } from "@/services/reviewService";
-import { getUserById, updateUserProfile } from "@/services/userService";
+import { getUserById, updateUserProfile, emailExists } from "@/services/userService";
 
 type UserForm = {
   email: string,
@@ -137,6 +137,11 @@ export default function Profile() {
         throw new Error("Email must end with @ulster.ac.uk");
       }
 
+      // Prevent multiple accounts being created using the same email address
+      if (await emailExists(db, email)) {
+        throw new Error('Email provided is already in use.');
+      }
+
       // Persist the updated profile values to the database
       await updateUserProfile(db, user.userID, {
         email,
@@ -168,18 +173,11 @@ export default function Profile() {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.form}>
 
-        
-
-
-
         {/** Rating */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Rating</Text>
           <Text>⭐ {rating.toFixed(1)}</Text>
         </View>
-
-
-
 
         {/** Email */}
         <View style={styles.inputGroup}>

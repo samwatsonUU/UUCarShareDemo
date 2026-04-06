@@ -184,7 +184,12 @@ export default function AddJourney() {
                   onFocus: () => setActiveAutocomplete("origin"),
                   onBlur: () => setActiveAutocomplete(null),
                   onChangeText: (text) =>
-                  setForm({ ...form, origin: text }),
+                  setForm({
+                    ...form,
+                    origin: text,
+                    originLatitude: null,
+                    originLongitude: null,
+                  }),
                 }}
                 styles={{
                   container: { flex: 0 },
@@ -252,7 +257,12 @@ export default function AddJourney() {
                   onFocus: () => setActiveAutocomplete("destination"),
                   onBlur: () => setActiveAutocomplete(null),
                   onChangeText: (text) =>
-                    setForm({ ...form, destination: text }),
+                    setForm({
+                      ...form,
+                      destination: text,
+                      destinationLatitude: null,
+                      destinationLongitude: null,
+                    }),
                 }}
                 styles={{
                   container: { flex: 0 },
@@ -296,6 +306,7 @@ export default function AddJourney() {
                   mode="time"
                   display="clock"
                   is24Hour
+                  timeZoneName="Europe/London"
                   onChange={(e, selected) => {
                     setShowDepartingPicker(false);
                     if (selected) setForm({ ...form, departingAt: selected });
@@ -326,6 +337,7 @@ export default function AddJourney() {
                   mode="time"
                   display="clock"
                   is24Hour
+                  timeZoneName="Europe/London"
                   onChange={(e, selected) => {
                     setShowArrivingPicker(false);
                     if (selected) setForm({ ...form, mustArriveAt: selected });
