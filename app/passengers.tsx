@@ -19,11 +19,16 @@ import { getUserReviewScore, hasUserReviewedThisUserAndJourney, getJourneyDateTi
 import { hasJourneyOccurred } from "@/utils/journeyUtils";
 import { getPassengersForJourney } from "@/services/journeyService";
 import type { Passenger } from "@/services/journeyService";
+import { getRoadDistanceKm } from "@/services/routesService";
 
 // Extends the Passenger type so each passenger can also store a review score
-type PassengerWithReviewScore = Passenger & {
+type PassengerWithStats  = Passenger & {
   reviewScore: number,
+  roadDistanceKm: number;
 }
+
+// GOOGLE API KEY FOR ROUTES
+const API_KEY = "AIzaSyBf_wr99NS_hcYHspoUxdKuv-NdRXzDgQs";
 
 export default function Passengers() {
 
@@ -31,13 +36,16 @@ export default function Passengers() {
     const db = useSQLiteContext();
 
     // Stores passengers plus their review scores for display
-    const [Users, setUsers] = useState<PassengerWithReviewScore[]>([]);
+    const [Users, setUsers] = useState<PassengerWithStats[]>([]);
 
     // Journey identifier passed through navigation
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
 
     // Current logged-in user
     const { user } = useAuth();
+
+    // Amount of KMs saved by all passengers in this Carpool
+    const [kilometresSaved, setKilometresSaved] = useState(0);
 
     // Load all passengers for the selected journey, then fetch each passenger's review score
     const loadUsers = async () => {
@@ -47,19 +55,34 @@ export default function Passengers() {
             const result = await getPassengersForJourney(db, Number(journeyID));
 
             // For each passenger, also retrieve their average review score
-            const usersWithScores: PassengerWithReviewScore[] = await Promise.all(
-            result.map(async (item) => {
-                const reviewScore = await getUserReviewScore(db, item.userID);
+            const usersWithScores: PassengerWithStats[] = await Promise.all(
+                result.map(async (item) => {
+                    const reviewScore = await getUserReviewScore(db, item.userID);
 
-                return {
-                ...item,
-                reviewScore,
-                };
-            })
+                    const roadDistanceKm = await getRoadDistanceKm(
+                    item.originLatitude,
+                    item.originLongitude,
+                    item.destinationLatitude,
+                    item.destinationLongitude,
+                    API_KEY
+                    );
+
+                    return {
+                    ...item,
+                    reviewScore,
+                    roadDistanceKm,
+                    };
+                })
+            );
+
+            const totalKmSaved = usersWithScores.reduce(
+                (sum, passenger) => sum + passenger.roadDistanceKm, 0   
             );
 
             // Store the final passenger list with scores
             setUsers(usersWithScores);
+            setKilometresSaved(totalKmSaved);
+
         } catch (error) {
             console.error("Database error", error);
         }
@@ -70,7 +93,7 @@ export default function Passengers() {
 
         loadUsers();
 
-    }, []);
+    }, [journeyID]);
 
     // Navigate to the review screen if the passenger is eligible to be reviewed
     const review = async (journeyID: number, revieweeID: number) => {
@@ -114,6 +137,10 @@ export default function Passengers() {
 
         <View style={styles.container}>
 
+            <Text style={styles.savedText}>
+                Kilometres saved: {kilometresSaved.toFixed(1)} km
+            </Text>
+
             <FlatList
                 style={styles.list}
                 data={Users}
@@ -127,6 +154,9 @@ export default function Passengers() {
 
                                 {/* Display the passenger's full name and average review score */}
                                 <Text style={styles.nameLabel}>{item.firstName} {item.lastName} ⭐ {item.reviewScore.toFixed(1)}</Text>
+
+                                <Text>{item.origin} → {item.destination}</Text>
+                                <Text>Approx. road distance: {item.roadDistanceKm.toFixed(1)} km</Text>
 
                                 {/* Button to leave a review for this passenger */}
                                 <Pressable 
@@ -170,6 +200,7 @@ const styles = StyleSheet.create({
 
     },
 
+    /*
     passengerContainer: {
 
         marginBottom: 20,
@@ -181,9 +212,31 @@ const styles = StyleSheet.create({
         justifyContent: "space-between"
 
     },
+    */
 
+    passengerContainer: {
+
+        marginBottom: 20,
+        padding: 20,
+        backgroundColor: "rgb(255, 255, 255)",
+        borderRadius: 15,
+
+    },
+
+    /*
     reviewButton: {
 
+        backgroundColor: "rgba(11, 161, 226, 0.2)",
+        borderRadius: 5,
+        padding: 10,
+
+    },
+    */
+
+    reviewButton: {
+        
+        marginTop: 12,
+        alignSelf: "flex-start",
         backgroundColor: "rgba(11, 161, 226, 0.2)",
         borderRadius: 5,
         padding: 10,
@@ -194,6 +247,15 @@ const styles = StyleSheet.create({
 
         fontSize: 16,
         fontWeight: "800",
+
+    },
+
+    savedText: {
+
+        marginTop: 15,
+        marginBottom: 10,
+        fontSize: 16,
+        fontWeight: "700",
 
     },
 

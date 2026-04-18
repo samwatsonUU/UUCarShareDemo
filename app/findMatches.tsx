@@ -152,7 +152,7 @@ export default function FindMatches() {
                 onPress={ () => 
                   router.push({
                     pathname: "/sendRequest",
-                    params: { journeyID: match.journeyID.toString() },
+                    params: { journeyID: match.journeyID.toString(), passengerSourceJourneyID: journeyID.toString() },
                   })
                 }>
                   {({ pressed }) => (

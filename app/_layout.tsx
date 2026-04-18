@@ -87,7 +87,8 @@ export default function RootLayout() {
             recipientID INTEGER NOT NULL,
             journeyID INTEGER NOT NULL,
             message TEXT NOT NULL,
-            status TEXT NOT NULL
+            status TEXT NOT NULL,
+            passengerSourceJourneyID INTEGER NOT NULL
           );
 
           CREATE TABLE IF NOT EXISTS reviews (

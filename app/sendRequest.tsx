@@ -30,11 +30,18 @@ export default function SendRequest() {
     // Journey ID passed through navigation
     const { journeyID } = useLocalSearchParams<{ journeyID: string }>();
 
+    // Journey ID passed through navigation
+    const { passengerSourceJourneyID } = useLocalSearchParams<{ passengerSourceJourneyID: string }>();
+
     // Stores the selected journey details
     const [journey, setJourney] = useState<JourneyWithDriverName | null>(null);
 
     // Stores the message entered by the user
     const [message, setMessage] = useState("");
+
+    // Numeric conversions of journeyID and passengerSourceJourneyID
+    const numericJourneyID = Number(journeyID);
+    const numericPassengerSourceJourneyID = Number(passengerSourceJourneyID);
 
     // Load the selected journey when the screen opens
     useEffect(() => {
@@ -44,7 +51,7 @@ export default function SendRequest() {
             try {
     
                 // Retrieve the selected journey along with the driver's name
-                const selectedJourney = await getJourneyWithDriverName(db, Number(journeyID));
+                const selectedJourney = await getJourneyWithDriverName(db, numericJourneyID);
                 
                 // If no journey is found, clear the state
                 if (!selectedJourney) {
@@ -134,7 +141,8 @@ export default function SendRequest() {
                         user!.userID,
                         journey.userID,
                         journey.journeyID,
-                        message.trim()
+                        message.trim(),
+                        numericPassengerSourceJourneyID
                     );
                     
                     Alert.alert(

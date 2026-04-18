@@ -1,5 +1,5 @@
 
-import { getUserReviewScore, hasUserReviewedJourney, getJourneyDateTime, addReview } from "./reviewService";
+import { getUserReviewScore, hasUserReviewedThisUserAndJourney, getJourneyDateTime, addReview } from "./reviewService";
 
 describe("getUserReviewScore", () => {
 
@@ -57,23 +57,25 @@ describe("getUserReviewScore", () => {
 
     it("returns zero if database operation fails", async () => {
 
+        const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
         const mockDb = {
-
             getFirstAsync: jest.fn().mockRejectedValue(new Error("DB error")),
-
         } as any;
 
         const result = await getUserReviewScore(mockDb, 1);
 
         expect(result).toBe(0);
 
+        consoleSpy.mockRestore();
+
     });
 
 });
 
-describe ("hasUserReviewedJourney", () => {
+describe ("hasUserReviewedThisUserAndJourney", () => {
 
-    it("returns true if a reviewID is found for prodived journeyID and reviewerID", async () => {
+    it("returns true if a reviewID is found for prodived journeyID, reviewerID, and revieweeID", async () => {
 
         const mockDb = {
 
@@ -87,13 +89,13 @@ describe ("hasUserReviewedJourney", () => {
 
         } as any;
 
-        const result = await hasUserReviewedJourney(mockDb, 1, 1);
+        const result = await hasUserReviewedThisUserAndJourney(mockDb, 1, 1, 2);
 
         expect(result).toBe(true);
 
     });
 
-    it("returns false if no reviewID is found for prodived journeyID and reviewerID", async () => {
+    it("returns false if no reviewID is found for prodived journeyID, reviewerID, and revieweeID", async () => {
 
         const mockDb = {
 
@@ -103,7 +105,7 @@ describe ("hasUserReviewedJourney", () => {
 
         } as any;
 
-        const result = await hasUserReviewedJourney(mockDb, 1, 1);
+        const result = await hasUserReviewedThisUserAndJourney(mockDb, 1, 1, 2);
 
         expect(result).toBe(false);
 

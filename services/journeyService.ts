@@ -84,12 +84,20 @@ export type JourneyWithDriverName = Journey & {
 };
 
 /*
-  Represents a passenger participating in a journey.
+  Represents a passenger participating in a journey + all thier source journey data (i.e. the journey they used 
+  to find the match and make the request)
 */
 export type Passenger = {
   userID: number;
   firstName: string;
   lastName: string;
+  passengerSourceJourneyID: number;
+  origin: string;
+  originLatitude: number;
+  originLongitude: number;
+  destination: string;
+  destinationLatitude: number;
+  destinationLongitude: number;
 };
 
 /*
@@ -197,11 +205,24 @@ export async function getPassengersForJourney(
 ): Promise<Passenger[]> {
 
   return await db.getAllAsync<Passenger>(
-    `SELECT u.userID, u.firstName, u.lastName
-     FROM requests r
-     JOIN users u ON u.userID = r.requesterID
-     WHERE r.journeyID = ? AND r.status = 'Approved'`,
+
+  `SELECT
+        u.userID,
+        u.firstName,
+        u.lastName,
+        r.passengerSourceJourneyID,
+        j.origin,
+        j.originLatitude,
+        j.originLongitude,
+        j.destination,
+        j.destinationLatitude,
+        j.destinationLongitude
+    FROM requests r
+    JOIN users u ON u.userID = r.requesterID
+    JOIN journeys j ON j.journeyID = r.passengerSourceJourneyID
+    WHERE r.journeyID = ? AND r.status = 'Approved'`,
     [journeyID]
+
   );
 
 }
