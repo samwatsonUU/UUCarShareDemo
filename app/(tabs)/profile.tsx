@@ -20,7 +20,7 @@ import { Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';  
 import { getUserReviewScore } from "@/services/reviewService";
-import { getUserById, updateUserProfile, emailExists } from "@/services/userService";
+import { getUserById, updateUserProfile, emailExistsForOtherUser  } from "@/services/userService";
 
 type UserForm = {
   email: string,
@@ -138,7 +138,7 @@ export default function Profile() {
       }
 
       // Prevent multiple accounts being created using the same email address
-      if (await emailExists(db, email)) {
+      if (await emailExistsForOtherUser (db, email, user.userID)) {
         throw new Error('Email provided is already in use.');
       }
 

@@ -80,7 +80,7 @@ export async function emailExists(
 ): Promise<boolean> {
 
   const result = await db.getFirstAsync(
-    `SELECT 1 FROM users WHERE email = ? LIMIT 1`,
+    `SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1`,
     [email]
   );
 
@@ -179,4 +179,26 @@ export async function updateUserProfile(
     ]
   );
 
+}
+
+/*
+  Check whether an email address is already in-used by another user.
+
+  This is used on the profile page to check that the email provided by the user is not in use by any OTHER user.
+*/
+export async function emailExistsForOtherUser(
+  db: SQLiteDatabase,
+  email: string,
+  userID: number
+): Promise<boolean> {
+  const result = await db.getFirstAsync(
+    `SELECT 1
+     FROM users
+     WHERE LOWER(email) = LOWER(?)
+       AND userID != ?
+     LIMIT 1`,
+    [email, userID]
+  );
+
+  return !!result;
 }
