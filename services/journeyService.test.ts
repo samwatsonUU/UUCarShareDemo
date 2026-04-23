@@ -280,11 +280,25 @@ describe("getPassengersForJourney", () => {
         const result = await getPassengersForJourney(mockDb, 1)
 
         expect(result).toStrictEqual(mockPassengerArray);
-        expect(mockDb.getAllAsync).toHaveBeenLastCalledWith(`SELECT u.userID, u.firstName, u.lastName
-     FROM requests r
-     JOIN users u ON u.userID = r.requesterID
-     WHERE r.journeyID = ? AND r.status = 'Approved'`,
-    [1])
+        expect(mockDb.getAllAsync).toHaveBeenLastCalledWith(
+  `SELECT
+        u.userID,
+        u.firstName,
+        u.lastName,
+        r.passengerSourceJourneyID,
+        j.origin,
+        j.originLatitude,
+        j.originLongitude,
+        j.destination,
+        j.destinationLatitude,
+        j.destinationLongitude
+    FROM requests r
+    JOIN users u ON u.userID = r.requesterID
+    JOIN journeys j ON j.journeyID = r.passengerSourceJourneyID
+    WHERE r.journeyID = ? AND r.status = 'Approved'`,
+  [1]
+);
+        
 
     })
 
@@ -301,12 +315,24 @@ describe("getPassengersForJourney", () => {
         const result = await getPassengersForJourney(mockDb, 2)
 
         expect(result).toStrictEqual(mockPassengerArray);
-        expect(mockDb.getAllAsync).toHaveBeenLastCalledWith(`SELECT u.userID, u.firstName, u.lastName
-     FROM requests r
-     JOIN users u ON u.userID = r.requesterID
-     WHERE r.journeyID = ? AND r.status = 'Approved'`,
-    [2])
-
+        expect(mockDb.getAllAsync).toHaveBeenLastCalledWith(
+  `SELECT
+        u.userID,
+        u.firstName,
+        u.lastName,
+        r.passengerSourceJourneyID,
+        j.origin,
+        j.originLatitude,
+        j.originLongitude,
+        j.destination,
+        j.destinationLatitude,
+        j.destinationLongitude
+    FROM requests r
+    JOIN users u ON u.userID = r.requesterID
+    JOIN journeys j ON j.journeyID = r.passengerSourceJourneyID
+    WHERE r.journeyID = ? AND r.status = 'Approved'`,
+  [2]
+);
     })    
 
 }) 

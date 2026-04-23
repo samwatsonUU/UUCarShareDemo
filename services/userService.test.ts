@@ -67,7 +67,7 @@ describe("emailExists", () => {
         const result = await(emailExists(mockDb, "testEmail"));
 
         expect(result).toBe(true);
-        expect(mockDb.getFirstAsync).toHaveBeenCalledWith(`SELECT 1 FROM users WHERE email = ? LIMIT 1`, ["testEmail"])
+        expect(mockDb.getFirstAsync).toHaveBeenCalledWith("SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", ["testEmail"])
 
     })
 
@@ -82,7 +82,7 @@ describe("emailExists", () => {
         const result = await(emailExists(mockDb, "testEmail"));
 
         expect(result).toBe(false);
-        expect(mockDb.getFirstAsync).toHaveBeenCalledWith(`SELECT 1 FROM users WHERE email = ? LIMIT 1`, ["testEmail"])
+        expect(mockDb.getFirstAsync).toHaveBeenCalledWith("SELECT 1 FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", ["testEmail"])
 
     })
 

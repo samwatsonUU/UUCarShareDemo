@@ -10,9 +10,9 @@ describe("createRequest", () => {
 
         } as any;
 
-        await createRequest(mockDb, 1, 1, 1, "test");
+        await createRequest(mockDb, 1, 1, 1, "test", 1);
 
-        expect(mockDb.runAsync).toHaveBeenLastCalledWith(`INSERT INTO requests (requesterID, recipientID, journeyID, message, status) VALUES (?, ?, ?, ?, "Pending")`, [1, 1, 1, "test"])
+        expect(mockDb.runAsync).toHaveBeenLastCalledWith(`INSERT INTO requests (requesterID, recipientID, journeyID, message, status, passengerSourceJourneyID) VALUES (?, ?, ?, ?, "Pending", ?)`, [1, 1, 1, "test", 1])
 
     })
 
