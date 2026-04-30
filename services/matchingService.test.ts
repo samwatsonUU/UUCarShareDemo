@@ -1,12 +1,9 @@
-import { findMatchingJourneys, JourneyMatch } from "./matchingService";
 import type { Journey } from "@/services/journeyService";
+import { findMatchingJourneys } from "./matchingService";
 
 describe("findMatchingJourneys", () => {
-
   it("returns valid matching journeys and calls getAllAsync with the correct SQL and parameters", async () => {
-
     const mockJourney = {
-
       journeyID: 1,
       userID: 1,
       origin: "test",
@@ -20,20 +17,16 @@ describe("findMatchingJourneys", () => {
       date: "01/01/2026",
       status: "Open",
       journeyType: "driver",
-
     } as Journey;
 
     const mockCurrentUser = {
-
       smokingAllowed: 1,
       prefersSameGender: 1,
       role: "Student",
       gender: "Male",
-
     };
 
     const mockDbResult = [
-
       {
         journeyID: 2,
         userID: 2,
@@ -50,38 +43,32 @@ describe("findMatchingJourneys", () => {
         journeyType: "driver",
         firstName: "test",
       },
-
     ];
 
     const mockDb = {
-
       getAllAsync: jest.fn().mockResolvedValue(mockDbResult),
-
     } as any;
 
     const result = await findMatchingJourneys(
-
       mockDb,
       mockJourney,
       1,
-      mockCurrentUser
-
+      mockCurrentUser,
     );
 
     const RADIUS_KM = 5;
     const LAT_DELTA = RADIUS_KM / 111;
-    const LNG_DELTA = RADIUS_KM / (111 * Math.cos(mockJourney.originLatitude * Math.PI / 180));
+    const LNG_DELTA =
+      RADIUS_KM /
+      (111 * Math.cos((mockJourney.originLatitude * Math.PI) / 180));
     const TIME_WINDOW_MINUTES = 30;
 
     expect(result).toStrictEqual([
-
       {
         ...mockDbResult[0],
         originDistance: 0,
         destinationDistance: 0,
-
       },
-
     ]);
 
     expect(mockDb.getAllAsync).toHaveBeenCalledWith(
@@ -125,6 +112,23 @@ describe("findMatchingJourneys", () => {
         )
       ) <= ?
 
+      AND (
+        (
+          CAST(substr(j.mustArriveAt, 1, 2) AS INTEGER) * 60 +
+          CAST(substr(j.mustArriveAt, 4, 2) AS INTEGER)
+        )
+        BETWEEN
+        (
+          CAST(substr(?, 1, 2) AS INTEGER) * 60 +
+          CAST(substr(?, 4, 2) AS INTEGER)
+        ) - 60
+        AND
+        (
+          CAST(substr(?, 1, 2) AS INTEGER) * 60 +
+          CAST(substr(?, 4, 2) AS INTEGER)
+        )
+      )
+
       AND j.originLatitude BETWEEN ? AND ?
       AND j.originLongitude BETWEEN ? AND ?
 
@@ -149,6 +153,11 @@ describe("findMatchingJourneys", () => {
 
         TIME_WINDOW_MINUTES,
 
+        mockJourney.mustArriveAt,
+        mockJourney.mustArriveAt,
+        mockJourney.mustArriveAt,
+        mockJourney.mustArriveAt,
+
         mockJourney.originLatitude - LAT_DELTA,
         mockJourney.originLatitude + LAT_DELTA,
         mockJourney.originLongitude - LNG_DELTA,
@@ -158,179 +167,152 @@ describe("findMatchingJourneys", () => {
         mockJourney.destinationLatitude + LAT_DELTA,
         mockJourney.destinationLongitude - LNG_DELTA,
         mockJourney.destinationLongitude + LNG_DELTA,
-      ]
+      ],
     );
   });
 
-
   it("test that an empty array is returned when no macthing journeys are found", async () => {
-
     const mockJourney = {
-
-        journeyID: 1,
-        userID: 1,
-        origin: "A",
-        originLatitude: 1,
-        originLongitude: 1,
-        destination: "B",
-        destinationLatitude: 1,
-        destinationLongitude: 1,
-        departingAt: "09:00",
-        mustArriveAt: "10:00",
-        date: "01/01/2026",
-        status: "Open",
-        journeyType: "driver",
-
+      journeyID: 1,
+      userID: 1,
+      origin: "A",
+      originLatitude: 1,
+      originLongitude: 1,
+      destination: "B",
+      destinationLatitude: 1,
+      destinationLongitude: 1,
+      departingAt: "09:00",
+      mustArriveAt: "10:00",
+      date: "01/01/2026",
+      status: "Open",
+      journeyType: "driver",
     } as Journey;
 
     const mockDb = {
-
-        getAllAsync: jest.fn().mockResolvedValue([]),
-
+      getAllAsync: jest.fn().mockResolvedValue([]),
     } as any;
 
     const result = await findMatchingJourneys(mockDb, mockJourney, 1, {
-
-        smokingAllowed: 1,
-        prefersSameGender: 1,
-        role: "Student",
-        gender: "Male",
-
+      smokingAllowed: 1,
+      prefersSameGender: 1,
+      role: "Student",
+      gender: "Male",
     });
 
     expect(result).toEqual([]);
-    });
+  });
 
-    it("tests that journeys outside the 5km radius are filtered out from results", async () => {
-
+  it("tests that journeys outside the 5km radius are filtered out from results", async () => {
     const mockJourney = {
-        journeyID: 1,
-        userID: 1,
-        origin: "A",
-        originLatitude: 1,
-        originLongitude: 1,
-        destination: "B",
-        destinationLatitude: 1,
-        destinationLongitude: 1,
-        departingAt: "09:00",
-        mustArriveAt: "10:00",
-        date: "01/01/2026",
-        status: "Open",
-        journeyType: "driver",
-
+      journeyID: 1,
+      userID: 1,
+      origin: "A",
+      originLatitude: 1,
+      originLongitude: 1,
+      destination: "B",
+      destinationLatitude: 1,
+      destinationLongitude: 1,
+      departingAt: "09:00",
+      mustArriveAt: "10:00",
+      date: "01/01/2026",
+      status: "Open",
+      journeyType: "driver",
     } as Journey;
 
     const mockDb = {
-
-        getAllAsync: jest.fn().mockResolvedValue([
-
+      getAllAsync: jest.fn().mockResolvedValue([
         {
-            journeyID: 2,
-            userID: 2,
-            origin: "Far away",
-            originLatitude: 10,
-            originLongitude: 10,
-            destination: "Far away",
-            destinationLatitude: 10,
-            destinationLongitude: 10,
-            departingAt: "09:00",
-            mustArriveAt: "10:00",
-            date: "01/01/2026",
-            status: "Open",
-            journeyType: "driver",
-            firstName: "John",
+          journeyID: 2,
+          userID: 2,
+          origin: "Far away",
+          originLatitude: 10,
+          originLongitude: 10,
+          destination: "Far away",
+          destinationLatitude: 10,
+          destinationLongitude: 10,
+          departingAt: "09:00",
+          mustArriveAt: "10:00",
+          date: "01/01/2026",
+          status: "Open",
+          journeyType: "driver",
+          firstName: "John",
         },
-
       ]),
-
     } as any;
 
     const result = await findMatchingJourneys(mockDb, mockJourney, 1, {
-
-        smokingAllowed: 1,
-        prefersSameGender: 1,
-        role: "Student",
-        gender: "Male",
-
+      smokingAllowed: 1,
+      prefersSameGender: 1,
+      role: "Student",
+      gender: "Male",
     });
 
     expect(result).toEqual([]);
-
   });
 
   it("tests that matches are ordered by nearest to furthest (originDistance ascending)", async () => {
-
     const mockJourney = {
-
-        journeyID: 1,
-        userID: 1,
-        origin: "A",
-        originLatitude: 1,
-        originLongitude: 1,
-        destination: "B",
-        destinationLatitude: 1,
-        destinationLongitude: 1,
-        departingAt: "09:00",
-        mustArriveAt: "10:00",
-        date: "01/01/2026",
-        status: "Open",
-        journeyType: "driver",
-
+      journeyID: 1,
+      userID: 1,
+      origin: "A",
+      originLatitude: 1,
+      originLongitude: 1,
+      destination: "B",
+      destinationLatitude: 1,
+      destinationLongitude: 1,
+      departingAt: "09:00",
+      mustArriveAt: "10:00",
+      date: "01/01/2026",
+      status: "Open",
+      journeyType: "driver",
     } as Journey;
 
     const mockDb = {
-
-        getAllAsync: jest.fn().mockResolvedValue([
-
+      getAllAsync: jest.fn().mockResolvedValue([
         {
-            journeyID: 3,
-            userID: 3,
-            origin: "Further",
-            originLatitude: 1.02,
-            originLongitude: 1.02,
-            destination: "B",
-            destinationLatitude: 1,
-            destinationLongitude: 1,
-            departingAt: "09:00",
-            mustArriveAt: "10:00",
-            date: "01/01/2026",
-            status: "Open",
-            journeyType: "driver",
-            firstName: "Further User",
+          journeyID: 3,
+          userID: 3,
+          origin: "Further",
+          originLatitude: 1.02,
+          originLongitude: 1.02,
+          destination: "B",
+          destinationLatitude: 1,
+          destinationLongitude: 1,
+          departingAt: "09:00",
+          mustArriveAt: "10:00",
+          date: "01/01/2026",
+          status: "Open",
+          journeyType: "driver",
+          firstName: "Further User",
         },
 
         {
-            journeyID: 2,
-            userID: 2,
-            origin: "Closer",
-            originLatitude: 1.001,
-            originLongitude: 1.001,
-            destination: "B",
-            destinationLatitude: 1,
-            destinationLongitude: 1,
-            departingAt: "09:00",
-            mustArriveAt: "10:00",
-            date: "01/01/2026",
-            status: "Open",
-            journeyType: "driver",
-            firstName: "Closer User",
+          journeyID: 2,
+          userID: 2,
+          origin: "Closer",
+          originLatitude: 1.001,
+          originLongitude: 1.001,
+          destination: "B",
+          destinationLatitude: 1,
+          destinationLongitude: 1,
+          departingAt: "09:00",
+          mustArriveAt: "10:00",
+          date: "01/01/2026",
+          status: "Open",
+          journeyType: "driver",
+          firstName: "Closer User",
         },
-
-        ]),
-
+      ]),
     } as any;
 
     const result = await findMatchingJourneys(mockDb, mockJourney, 1, {
-
-        smokingAllowed: 1,
-        prefersSameGender: 0,
-        role: "Student",
-        gender: "Male",
-
+      smokingAllowed: 1,
+      prefersSameGender: 0,
+      role: "Student",
+      gender: "Male",
     });
 
     expect(result[0].journeyID).toBe(2);
     expect(result[1].journeyID).toBe(3);
-
-    });
+  });
 });
